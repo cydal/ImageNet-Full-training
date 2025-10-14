@@ -3,6 +3,12 @@
 Test script for ImageNet DataModule.
 Verifies data loading, preprocessing, and basic statistics.
 """
+import sys
+from pathlib import Path
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import time
 import torch
 from data.datamodule import ImageNetDataModule

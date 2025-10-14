@@ -3,6 +3,12 @@
 Quick test script to verify the entire pipeline.
 Tests: data loading -> model forward -> loss computation
 """
+import sys
+from pathlib import Path
+
+# Add parent directory to path so we can import from data, models, etc.
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import torch
 import lightning.pytorch as pl
 from data.datamodule import ImageNetDataModule

@@ -3,6 +3,12 @@
 Benchmark script for ImageNet DataLoader.
 Tests different configurations to find optimal settings.
 """
+import sys
+from pathlib import Path
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import time
 import argparse
 import torch
