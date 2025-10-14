@@ -10,9 +10,9 @@ import os
 from pathlib import Path
 import yaml
 
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
-from pytorch_lightning.loggers import WandbLogger, CSVLogger
+import lightning.pytorch as pl
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.loggers import WandbLogger, CSVLogger
 
 from data.datamodule import ImageNetDataModule
 from models.resnet50 import ResNet50Module

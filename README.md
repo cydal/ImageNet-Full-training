@@ -2,6 +2,18 @@
 
 A production-ready ImageNet training codebase using PyTorch Lightning, designed for efficient single-node and multi-node distributed training.
 
+## ⚠️ Setup Required
+
+**Status**: Code is ready, but environment setup is required before running.
+
+👉 **See [SETUP.md](SETUP.md) for installation instructions**
+
+```bash
+# Quick setup
+make install
+make quick-test
+```
+
 ## Features
 
 - **PyTorch Lightning**: Clean, modular training code with automatic distributed training support
@@ -42,15 +54,27 @@ A production-ready ImageNet training codebase using PyTorch Lightning, designed 
 
 ## Quick Start
 
+### 0. Prerequisites
+- Ubuntu Linux with NVIDIA GPU
+- ImageNet data at `/data2/imagenet`
+- Python 3.8+
+
 ### 1. Setup Environment
 
-```bash
-# Install dependencies
-make setup
+⚠️ **IMPORTANT**: Install dependencies first!
 
-# Or just install Python packages
+```bash
+cd /home/ubuntu/imagenet
+
+# Install Python packages
 make install
+
+# Verify installation
+python -c "import lightning.pytorch as pl; print(f'Lightning: {pl.__version__}')"
+python -c "import torch; print(f'PyTorch: {torch.__version__}')"
 ```
+
+See [SETUP.md](SETUP.md) for detailed instructions and troubleshooting.
 
 ### 2. Mount FSx (Optional)
 

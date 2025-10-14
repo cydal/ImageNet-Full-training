@@ -3,29 +3,60 @@
 ## Overview
 Comprehensive testing strategy for the ImageNet DataModule to ensure correctness, performance, and reliability.
 
+## ⚠️ IMPORTANT: Test Status
+
+**Current Status**: Test code is implemented but **NOT YET EXECUTED**
+
+All tests marked with ✅ indicate that the **test code has been written**, but the tests have **not been run yet** because:
+1. Environment is not set up (dependencies not installed)
+2. No verification has been performed on actual data
+
+### Prerequisites Before Running Tests
+```bash
+# 1. Install dependencies
+cd /home/ubuntu/imagenet
+make install
+
+# 2. Verify data exists
+ls /data2/imagenet/train
+ls /data2/imagenet/val
+
+# 3. Run tests
+make quick-test      # Quick verification
+make test-data       # Full data module tests
+make test-integrity  # Data integrity checks
+make benchmark-data  # Performance benchmarks
+```
+
 ## Test Categories
 
-### 1. Basic Functionality Tests ✅
+### 1. Basic Functionality Tests 📝
 
 #### 1.1 Dataset Loading
-- [x] Verify train dataset loads successfully
-- [x] Verify validation dataset loads successfully
-- [x] Check dataset sizes (train: ~1.28M, val: 50K)
-- [x] Verify number of classes (1000)
+- [x] Test code implemented
+- [ ] Test executed and verified
+  - [ ] Verify train dataset loads successfully
+  - [ ] Verify validation dataset loads successfully
+  - [ ] Check dataset sizes (train: ~1.28M, val: 50K)
+  - [ ] Verify number of classes (1000)
 
 #### 1.2 DataLoader Creation
-- [x] Create train dataloader
-- [x] Create validation dataloader
-- [x] Verify batch shapes
-- [x] Verify data types
+- [x] Test code implemented
+- [ ] Test executed and verified
+  - [ ] Create train dataloader
+  - [ ] Create validation dataloader
+  - [ ] Verify batch shapes
+  - [ ] Verify data types
 
 #### 1.3 Basic Iteration
-- [x] Iterate through single batch
-- [x] Verify images shape: [batch_size, 3, 224, 224]
-- [x] Verify labels shape: [batch_size]
-- [x] Check value ranges (images: normalized, labels: 0-999)
+- [x] Test code implemented
+- [ ] Test executed and verified
+  - [ ] Iterate through single batch
+  - [ ] Verify images shape: [batch_size, 3, 224, 224]
+  - [ ] Verify labels shape: [batch_size]
+  - [ ] Check value ranges (images: normalized, labels: 0-999)
 
-**Status**: Implemented in `test_datamodule.py`
+**Status**: ✅ Test code implemented in `test_datamodule.py` | ⏳ **NOT YET EXECUTED** (requires environment setup)
 
 ---
 
@@ -49,7 +80,7 @@ Comprehensive testing strategy for the ImageNet DataModule to ensure correctness
 - [ ] Check for class imbalance issues
 - [ ] Generate distribution statistics
 
-**Status**: To be implemented in `test_data_integrity.py`
+**Status**: ✅ Test code implemented in `test_data_integrity.py` | ⏳ **NOT YET EXECUTED** (requires environment setup)
 
 ---
 
@@ -74,7 +105,7 @@ Comprehensive testing strategy for the ImageNet DataModule to ensure correctness
 - [ ] Test with AutoAugment
 - [ ] Compare visual outputs
 
-**Status**: Partially implemented in `test_datamodule.py`
+**Status**: ⚠️ Partially implemented in `test_datamodule.py` | ⏳ **NOT YET EXECUTED**
 
 ---
 
@@ -99,7 +130,7 @@ Comprehensive testing strategy for the ImageNet DataModule to ensure correctness
 - [ ] Compare local vs FSx performance (future)
 - [ ] Optimize based on findings
 
-**Status**: Basic throughput test in `test_datamodule.py`
+**Status**: ✅ Test code implemented in `test_datamodule.py` and `benchmark_dataloader.py` | ⏳ **NOT YET EXECUTED**
 
 ---
 
@@ -158,7 +189,28 @@ Comprehensive testing strategy for the ImageNet DataModule to ensure correctness
 
 ## Test Execution Plan
 
-### Phase 1: Basic Validation (Day 1) ✅
+### ⚠️ Phase 0: Environment Setup (REQUIRED FIRST)
+```bash
+# Install dependencies
+cd /home/ubuntu/imagenet
+make install
+
+# Verify installation
+python -c "import lightning.pytorch as pl; print(f'Lightning version: {pl.__version__}')"
+python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+python -c "import torchvision; print(f'Torchvision version: {torchvision.__version__}')"
+
+# Verify data access
+ls -la /data2/imagenet/train | head -20
+ls -la /data2/imagenet/val | head -20
+```
+
+**Expected**: 
+- All packages installed successfully
+- Lightning version >= 2.0.0
+- Data directories accessible
+
+### Phase 1: Basic Validation (Day 1) ⏳ NOT YET STARTED
 ```bash
 # Run existing tests
 python tests/quick_test.py
@@ -166,6 +218,7 @@ python tests/test_datamodule.py
 ```
 
 **Expected**: All basic tests pass, throughput > 500 images/sec
+**Status**: ⏳ Waiting for environment setup
 
 ### Phase 2: Data Integrity (Day 1-2) 🔄
 ```bash

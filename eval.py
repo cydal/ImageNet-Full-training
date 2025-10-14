@@ -8,8 +8,8 @@ import argparse
 from pathlib import Path
 import yaml
 
-import pytorch_lightning as pl
-from pytorch_lightning.loggers import CSVLogger
+import lightning.pytorch as pl
+from lightning.pytorch.loggers import CSVLogger
 
 from data.datamodule import ImageNetDataModule
 from models.resnet50 import ResNet50Module

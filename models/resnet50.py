@@ -5,7 +5,7 @@ Wraps torchvision ResNet50 with training logic.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from torchvision.models import resnet50, ResNet50_Weights
 from typing import Optional, Dict, Any
 

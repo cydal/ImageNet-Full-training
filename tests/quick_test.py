@@ -4,7 +4,7 @@ Quick test script to verify the entire pipeline.
 Tests: data loading -> model forward -> loss computation
 """
 import torch
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from data.datamodule import ImageNetDataModule
 from models.resnet50 import ResNet50Module
 

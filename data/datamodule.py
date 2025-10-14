@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
