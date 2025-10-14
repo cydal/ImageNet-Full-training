@@ -131,16 +131,16 @@ def main():
     # Create trainer
     trainer = pl.Trainer(
         max_epochs=config.get("epochs", 90),
-        accelerator="gpu" if config.get("strategy", "ddp") else "auto",
-        devices=args.devices if args.devices else "auto",
-        num_nodes=args.num_nodes if args.num_nodes else 1,
-        strategy=config.get("strategy", "ddp"),
-        precision=config.get("precision", "16-mixed"),
+        accelerator=config.get("accelerator", "auto"),
+        devices=args.devices if args.devices else config.get("devices", "auto"),
+        num_nodes=args.num_nodes if args.num_nodes else config.get("num_nodes", 1),
+        strategy=config.get("strategy", "auto"),
+        precision=args.precision if args.precision else config.get("precision", "32"),
         callbacks=callbacks,
         logger=loggers,
         log_every_n_steps=config.get("log_every_n_steps", 50),
         val_check_interval=config.get("val_check_interval", 1.0),
-        sync_batchnorm=config.get("sync_batchnorm", True),
+        sync_batchnorm=config.get("sync_batchnorm", False),
         gradient_clip_val=config.get("gradient_clip_val", None),
         deterministic=config.get("deterministic", False),
         benchmark=not config.get("deterministic", False)
