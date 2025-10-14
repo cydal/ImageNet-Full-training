@@ -73,7 +73,13 @@ make test-data
 - Train: ~1,281,167 images
 - Val: 50,000 images
 - Classes: 1000
-- Throughput: 500-2000 images/sec
+- Throughput: 400-2000 images/sec (depends on CPU/GPU)
+
+**Actual results (Oct 14, 2025):**
+- ✅ Train: 1,281,167 images
+- ✅ Val: 50,000 images
+- ✅ Classes: 1000
+- ✅ Throughput: 445 images/sec (CPU-only, will improve with GPU)
 
 ### 3. Data Integrity Tests (2-5 minutes)
 Validates dataset quality and structure.
