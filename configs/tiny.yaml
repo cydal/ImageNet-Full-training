@@ -1,0 +1,22 @@
+# Tiny ImageNet configuration for smoke tests
+# Overrides base.yaml for quick validation
+
+# Data settings
+data_root: /fsx/imagenet-tiny
+img_size: 64
+batch_size: 64
+num_workers: 4
+
+# Training settings
+epochs: 5
+lr: 0.01
+warmup_epochs: 1
+
+# Validation
+val_check_interval: 0.5
+
+# Logging
+log_every_n_steps: 10
+
+# Checkpointing
+save_top_k: 1

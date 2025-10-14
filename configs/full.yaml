@@ -1,0 +1,35 @@
+# Full ImageNet training configuration
+# Production settings for complete training run
+
+# Data settings
+data_root: /fsx/imagenet
+img_size: 224
+batch_size: 256
+num_workers: 12
+
+# Training settings
+epochs: 90
+lr: 0.1
+warmup_epochs: 5
+
+# Augmentation (stronger for full training)
+auto_augment: imagenet
+mixup_alpha: 0.2
+cutmix_alpha: 1.0
+label_smoothing: 0.1
+
+# Mixed precision
+precision: 16-mixed
+
+# Checkpointing
+save_top_k: 5
+
+# Logging
+log_every_n_steps: 100
+
+# Optional: EMA
+use_ema: true
+ema_decay: 0.9999
+
+# Optional: Gradient clipping
+gradient_clip_val: null
