@@ -58,7 +58,20 @@ num_workers: 8
 
 ### 1. Test Data Module
 ```bash
-python test_datamodule.py
+# Quick pipeline test
+make quick-test
+
+# Comprehensive data module test
+make test-data
+
+# Data integrity test
+make test-integrity
+
+# Benchmark dataloader
+make benchmark-data
+
+# Run all tests
+make test-all
 ```
 
 Expected output:
