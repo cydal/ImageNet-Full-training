@@ -1,0 +1,49 @@
+# Local development configuration
+# Uses local storage at /data2/imagenet for development
+
+# Data settings - LOCAL PATH
+data_root: /data2/imagenet
+num_workers: 8
+pin_memory: true
+persistent_workers: true
+
+# Image preprocessing
+img_size: 224
+
+# Training hyperparameters - reduced for faster iteration
+batch_size: 128  # Adjust based on GPU memory
+epochs: 10       # Shorter for development
+lr: 0.05         # Scaled with batch size
+warmup_epochs: 2
+
+# Mixed precision
+precision: 16-mixed
+
+# Logging
+log_every_n_steps: 20
+val_check_interval: 1.0
+
+# Checkpointing
+save_top_k: 2
+monitor: val/acc1
+mode: max
+
+# Distributed training
+strategy: ddp
+sync_batchnorm: true
+
+# Augmentation - lighter for development
+random_crop: true
+random_horizontal_flip: true
+auto_augment: null  # Disable for faster training
+mixup_alpha: 0.0
+cutmix_alpha: 0.0
+label_smoothing: 0.0
+
+# Misc
+seed: 42
+deterministic: false
+
+# Development flags
+use_ema: false  # Disable EMA for faster development
+gradient_clip_val: null

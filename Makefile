@@ -1,7 +1,7 @@
 # Makefile for ImageNet training
 # Provides convenient one-liners for common tasks
 
-.PHONY: help setup install mount-fsx tiny-subset train-tiny train-single train-multi eval clean
+.PHONY: help setup install mount-fsx tiny-subset train-tiny train-single train-multi eval clean test-data train-local quick-test
 
 help:
 	@echo "ImageNet Training Makefile"
@@ -9,6 +9,9 @@ help:
 	@echo "Available targets:"
 	@echo "  setup         - Install system dependencies and Python packages"
 	@echo "  install       - Install Python packages only"
+	@echo "  quick-test    - Quick pipeline test (data + model + training step)"
+	@echo "  test-data     - Test data module with local data"
+	@echo "  train-local   - Train with local data (/data2/imagenet)"
 	@echo "  mount-fsx     - Mount AWS FSx filesystem"
 	@echo "  tiny-subset   - Create tiny ImageNet subset for smoke testing"
 	@echo "  train-tiny    - Train on tiny subset (smoke test)"
@@ -24,6 +27,18 @@ setup:
 install:
 	@echo "Installing Python packages..."
 	pip install -r requirements.txt
+
+quick-test:
+	@echo "Running quick pipeline test..."
+	python quick_test.py
+
+test-data:
+	@echo "Testing data module..."
+	python test_datamodule.py
+
+train-local:
+	@echo "Training with local data..."
+	python train.py --config configs/local.yaml
 
 mount-fsx:
 	@echo "Mounting FSx filesystem..."

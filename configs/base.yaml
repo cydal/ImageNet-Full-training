@@ -2,6 +2,8 @@
 # Shared defaults across all experiments
 
 # Data settings
+# Override with local.yaml for local development (/data2/imagenet)
+# or use default for FSx production (/fsx/imagenet)
 data_root: /fsx/imagenet
 num_workers: 8
 pin_memory: true
