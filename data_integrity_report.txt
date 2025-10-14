@@ -1,0 +1,19 @@
+ImageNet Data Integrity Report
+======================================================================
+
+Data Root: /data2/imagenet
+
+✓ Directory structure: PASS
+  Train classes: 1000
+  Val classes: 1000
+
+✓ Image validity: PASS
+  Corrupted images: 0
+
+✓ Class distribution: PASS
+  Train total: 1,281,167
+  Val total: 50,000
+
+✓ File naming: PASS
+  Extensions: {'.JPEG': 100}
+

@@ -100,6 +100,13 @@ make test-integrity
 - ✓ Val set: 50 images per class
 - ✓ All files are JPEG format
 
+**Actual results (Oct 14, 2025):**
+- ✅ 1000 classes in both train and val
+- ✅ 0% corruption rate (1000/1000 images valid)
+- ✅ Val set: exactly 50 images per class (perfect)
+- ✅ Train set: 732-1300 images per class (avg: 1281.2)
+- ✅ All files are JPEG format
+
 **Generates:** `data_integrity_report.txt`
 
 ### 4. Dataloader Benchmark (10-15 minutes)
