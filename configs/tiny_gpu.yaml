@@ -1,0 +1,49 @@
+# Tiny subset configuration for GPU smoke testing
+# Uses logical subsetting with S3/full dataset
+# Perfect for quick validation on GPU instance before full training
+
+# Data settings
+data_root: /path/to/imagenet  # Update this for your S3 mount or data path
+img_size: 224
+batch_size: 128               # Larger batch for GPU
+num_workers: 8                # More workers for GPU
+
+# Logical subsetting (no physical subset needed!)
+max_classes: 10               # Use 10 classes for quick test
+max_samples_per_class: 100    # 100 training samples per class
+subset_seed: 42               # Reproducible subset selection
+
+# Model settings
+num_classes: 10               # Match max_classes
+
+# Training settings
+epochs: 5                     # A few epochs to verify learning
+lr: 0.01
+momentum: 0.9
+weight_decay: 0.0001
+warmup_epochs: 1
+max_epochs: 5
+
+# Hardware settings (GPU)
+accelerator: gpu
+devices: 1                    # Single GPU
+strategy: auto
+precision: 16-mixed           # Mixed precision for speed
+sync_batchnorm: false         # Not needed for single GPU
+
+# Validation
+val_check_interval: 1.0       # Validate after each epoch
+
+# Logging
+log_every_n_steps: 10
+
+# Checkpointing
+save_top_k: 2
+monitor: val/acc1
+mode: max
+
+# Augmentation (optional - can disable for faster testing)
+auto_augment: null            # Set to 'imagenet' to test augmentation
+mixup_alpha: 0.0              # Set to 0.2 to test mixup
+cutmix_alpha: 0.0             # Set to 1.0 to test cutmix
+label_smoothing: 0.0          # Set to 0.1 to test label smoothing

@@ -1,14 +1,20 @@
 # Tiny ImageNet configuration for smoke tests
+# Uses logical subsetting - no need to create separate directory
 # Overrides base.yaml for quick validation
 
 # Data settings
-data_root: /data2/imagenet-tiny
+data_root: /data2/imagenet  # Use full dataset
 img_size: 224  # Keep standard size
-batch_size: 32  # Small batch for CPU
+batch_size: 32  # Small batch for CPU/testing
 num_workers: 2  # Minimal workers for CPU
 
+# Logical subsetting (no physical subset needed)
+max_classes: 5              # Only use 5 classes
+max_samples_per_class: 50   # Only 50 training samples per class
+subset_seed: 42             # Reproducible subset selection
+
 # Model settings
-num_classes: 5  # Only 5 classes in tiny subset
+num_classes: 5  # Match max_classes
 
 # Training settings
 epochs: 1  # Just 1 epoch for smoke test

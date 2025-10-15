@@ -1,7 +1,7 @@
 # Makefile for ImageNet training
 # Provides convenient one-liners for common tasks
 
-.PHONY: help setup install mount-fsx tiny-subset train-tiny train-single train-multi eval clean test-data train-local quick-test test-integrity benchmark-data test-all
+.PHONY: help setup install mount-fsx tiny-subset train-tiny train-single train-multi eval clean test-data train-local quick-test test-integrity benchmark-data test-all test-subset
 
 help:
 	@echo "ImageNet Training Makefile"
@@ -11,13 +11,14 @@ help:
 	@echo "  install          - Install Python packages only"
 	@echo "  quick-test       - Quick pipeline test (data + model + training step)"
 	@echo "  test-data        - Test data module with local data"
+	@echo "  test-subset      - Test logical subsetting functionality"
 	@echo "  test-integrity   - Test data integrity (structure, corrupted images)"
 	@echo "  benchmark-data   - Benchmark dataloader performance"
 	@echo "  test-all         - Run all tests"
 	@echo "  train-local      - Train with local data (/data2/imagenet)"
 	@echo "  mount-fsx     - Mount AWS FSx filesystem"
-	@echo "  tiny-subset   - Create tiny ImageNet subset for smoke testing"
-	@echo "  train-tiny    - Train on tiny subset (smoke test)"
+	@echo "  tiny-subset   - Create tiny ImageNet subset (deprecated - use logical subsetting)"
+	@echo "  train-tiny    - Train on tiny subset using logical subsetting"
 	@echo "  train-single  - Train on single node"
 	@echo "  train-multi   - Train on multiple nodes"
 	@echo "  eval          - Evaluate checkpoint on validation set"
@@ -39,6 +40,10 @@ test-data:
 	@echo "Testing data module..."
 	python tests/test_datamodule.py
 
+test-subset:
+	@echo "Testing logical subsetting..."
+	python tests/test_logical_subset.py
+
 test-integrity:
 	@echo "Testing data integrity..."
 	python tests/test_data_integrity.py --generate_report
@@ -53,10 +58,13 @@ test-all:
 	@echo "1. Quick pipeline test..."
 	python tests/quick_test.py
 	@echo ""
-	@echo "2. Data module tests..."
+	@echo "2. Logical subsetting test..."
+	python tests/test_logical_subset.py
+	@echo ""
+	@echo "3. Data module tests..."
 	python tests/test_datamodule.py
 	@echo ""
-	@echo "3. Data integrity tests..."
+	@echo "4. Data integrity tests..."
 	python tests/test_data_integrity.py
 	@echo ""
 	@echo "All tests completed!"

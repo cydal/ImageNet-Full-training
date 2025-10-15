@@ -1,12 +1,14 @@
 """
 ImageNet LightningDataModule supporting tiny/medium/full datasets.
+Supports logical subsetting for flexible testing without creating separate directories.
 """
 import os
+import random
 from pathlib import Path
 from typing import Optional
 
 import lightning.pytorch as pl
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
 
@@ -26,6 +28,18 @@ class ImageNetDataModule(pl.LightningDataModule):
                 n01440764/
                     ILSVRC2012_val_00000293.JPEG
                     ...
+    
+    Logical Subsetting:
+        Use max_classes and max_samples_per_class to create a subset
+        without physically creating a separate directory.
+        
+        Example:
+            # Use only 10 classes with 100 samples each
+            dm = ImageNetDataModule(
+                data_root="/data/imagenet",
+                max_classes=10,
+                max_samples_per_class=100
+            )
     """
     
     def __init__(
@@ -41,6 +55,10 @@ class ImageNetDataModule(pl.LightningDataModule):
         random_crop: bool = True,
         random_horizontal_flip: bool = True,
         auto_augment: Optional[str] = None,
+        # Logical subsetting parameters
+        max_classes: Optional[int] = None,
+        max_samples_per_class: Optional[int] = None,
+        subset_seed: int = 42,
         **kwargs
     ):
         super().__init__()
@@ -56,23 +74,92 @@ class ImageNetDataModule(pl.LightningDataModule):
         self.random_horizontal_flip = random_horizontal_flip
         self.auto_augment = auto_augment
         
+        # Subsetting parameters
+        self.max_classes = max_classes
+        self.max_samples_per_class = max_samples_per_class
+        self.subset_seed = subset_seed
+        
         self.train_dataset = None
         self.val_dataset = None
     
+    def _create_subset(self, dataset, max_classes=None, max_samples_per_class=None):
+        """
+        Create a logical subset of the dataset.
+        
+        Args:
+            dataset: ImageFolder dataset
+            max_classes: Maximum number of classes to include (None = all)
+            max_samples_per_class: Maximum samples per class (None = all)
+        
+        Returns:
+            Subset of the dataset or original dataset if no subsetting requested
+        """
+        if max_classes is None and max_samples_per_class is None:
+            return dataset
+        
+        # Build class-to-indices mapping
+        class_to_indices = {}
+        for idx, (_, label) in enumerate(dataset.samples):
+            if label not in class_to_indices:
+                class_to_indices[label] = []
+            class_to_indices[label].append(idx)
+        
+        # Limit number of classes if requested
+        if max_classes is not None:
+            random.seed(self.subset_seed)
+            all_classes = sorted(class_to_indices.keys())
+            selected_classes = random.sample(
+                all_classes, 
+                min(max_classes, len(all_classes))
+            )
+            class_to_indices = {
+                k: v for k, v in class_to_indices.items() 
+                if k in selected_classes
+            }
+        
+        # Limit samples per class if requested
+        subset_indices = []
+        for label, indices in sorted(class_to_indices.items()):
+            if max_samples_per_class is not None:
+                random.seed(self.subset_seed + label)
+                selected_indices = random.sample(
+                    indices, 
+                    min(max_samples_per_class, len(indices))
+                )
+            else:
+                selected_indices = indices
+            subset_indices.extend(selected_indices)
+        
+        print(f"Created subset: {len(subset_indices)} samples from {len(class_to_indices)} classes")
+        return Subset(dataset, subset_indices)
+    
     def setup(self, stage: Optional[str] = None):
-        """Setup train and validation datasets."""
+        """Setup train and validation datasets with optional subsetting."""
         if stage == "fit" or stage is None:
             train_transform = self._get_train_transform()
-            self.train_dataset = datasets.ImageFolder(
+            full_train = datasets.ImageFolder(
                 root=self.data_root / "train",
                 transform=train_transform
+            )
+            # Apply subsetting if requested
+            self.train_dataset = self._create_subset(
+                full_train,
+                max_classes=self.max_classes,
+                max_samples_per_class=self.max_samples_per_class
             )
         
         if stage == "fit" or stage == "validate" or stage is None:
             val_transform = self._get_val_transform()
-            self.val_dataset = datasets.ImageFolder(
+            full_val = datasets.ImageFolder(
                 root=self.data_root / "val",
                 transform=val_transform
+            )
+            # Apply subsetting if requested (use fewer val samples)
+            val_samples = 10 if self.max_samples_per_class else None
+            self.val_dataset = self._create_subset(
+                full_val,
+                max_classes=self.max_classes,
+                max_samples_per_class=val_samples
             )
     
     def _get_train_transform(self):
