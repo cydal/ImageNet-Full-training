@@ -125,7 +125,13 @@ class ImageNetDataModule(pl.LightningDataModule):
         
         Returns:
             RemappedSubset or original dataset if no subsetting requested
+        
+        Note:
+            CRITICAL: When both parameters are None (full training), this function
+            immediately returns the original dataset with ZERO overhead. Full training
+            is completely unaffected by the subsetting code.
         """
+        # IMPORTANT: Early return for full training - no modifications, no overhead
         if max_classes is None and max_samples_per_class is None:
             return dataset
         
