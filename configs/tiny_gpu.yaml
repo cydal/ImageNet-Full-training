@@ -3,7 +3,7 @@
 # Perfect for quick validation on GPU instance before full training
 
 # Data settings
-data_root: /fsx/imagenet  # FSx for Lustre mount point
+data_root: /fsx/ns1/ # FSx for Lustre mount point
 img_size: 224
 batch_size: 128               # Larger batch for GPU
 num_workers: 8                # More workers for GPU

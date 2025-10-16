@@ -40,9 +40,18 @@ if mountpoint -q "$MOUNT_POINT"; then
     exit 0
 fi
 
+# Extract filesystem ID from DNS name (e.g., fs-0c312f22a38ec497f)
+FSX_ID=$(echo "$FSX_DNS_NAME" | cut -d'.' -f1)
+echo "Filesystem ID: $FSX_ID"
+
+# FSx mount name - can be overridden with FSX_MOUNT_NAME env var
+# Default is typically the short filesystem ID without the full name
+FSX_MOUNT_NAME="${FSX_MOUNT_NAME:-fsx}"
+echo "Using mount name: $FSX_MOUNT_NAME"
+
 # Mount FSx
 echo "Mounting FSx at $MOUNT_POINT..."
-sudo mount -t lustre -o "$MOUNT_OPTIONS" "${FSX_DNS_NAME}@tcp:/fsx" "$MOUNT_POINT"
+sudo mount -t lustre -o "$MOUNT_OPTIONS" "${FSX_DNS_NAME}@tcp:/${FSX_MOUNT_NAME}" "$MOUNT_POINT"
 
 # Verify mount
 if mountpoint -q "$MOUNT_POINT"; then
