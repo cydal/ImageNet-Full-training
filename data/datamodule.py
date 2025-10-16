@@ -8,8 +8,39 @@ from pathlib import Path
 from typing import Optional
 
 import lightning.pytorch as pl
-from torch.utils.data import DataLoader, Subset
+import torch
+from torch.utils.data import DataLoader, Subset, Dataset
 from torchvision import datasets, transforms
+
+
+class RemappedSubset(Dataset):
+    """
+    Subset of a dataset with remapped labels to [0, N-1].
+    
+    This is necessary when using a subset of ImageNet classes, as the original
+    labels may be sparse (e.g., classes 5, 17, 234) but the model expects
+    dense labels (0, 1, 2).
+    """
+    def __init__(self, dataset, indices, label_mapping=None):
+        """
+        Args:
+            dataset: Original dataset
+            indices: Indices to include in subset
+            label_mapping: Dict mapping original labels to new labels [0, N-1]
+                          If None, labels are used as-is
+        """
+        self.dataset = dataset
+        self.indices = indices
+        self.label_mapping = label_mapping
+    
+    def __getitem__(self, idx):
+        image, label = self.dataset[self.indices[idx]]
+        if self.label_mapping is not None:
+            label = self.label_mapping[label]
+        return image, label
+    
+    def __len__(self):
+        return len(self.indices)
 
 
 class ImageNetDataModule(pl.LightningDataModule):
@@ -81,10 +112,11 @@ class ImageNetDataModule(pl.LightningDataModule):
         
         self.train_dataset = None
         self.val_dataset = None
+        self._num_classes = None  # Will be set during setup
     
     def _create_subset(self, dataset, max_classes=None, max_samples_per_class=None):
         """
-        Create a logical subset of the dataset.
+        Create a logical subset of the dataset with remapped labels.
         
         Args:
             dataset: ImageFolder dataset
@@ -92,7 +124,7 @@ class ImageNetDataModule(pl.LightningDataModule):
             max_samples_per_class: Maximum samples per class (None = all)
         
         Returns:
-            Subset of the dataset or original dataset if no subsetting requested
+            RemappedSubset or original dataset if no subsetting requested
         """
         if max_classes is None and max_samples_per_class is None:
             return dataset
@@ -117,6 +149,11 @@ class ImageNetDataModule(pl.LightningDataModule):
                 if k in selected_classes
             }
         
+        # Create label remapping: original_label -> new_label [0, N-1]
+        label_mapping = {}
+        for new_label, original_label in enumerate(sorted(class_to_indices.keys())):
+            label_mapping[original_label] = new_label
+        
         # Limit samples per class if requested
         subset_indices = []
         for label, indices in sorted(class_to_indices.items()):
@@ -131,7 +168,13 @@ class ImageNetDataModule(pl.LightningDataModule):
             subset_indices.extend(selected_indices)
         
         print(f"Created subset: {len(subset_indices)} samples from {len(class_to_indices)} classes")
-        return Subset(dataset, subset_indices)
+        print(f"Label mapping: {len(label_mapping)} original classes -> [0, {len(label_mapping)-1}]")
+        
+        # Store number of classes for model initialization
+        if not hasattr(self, '_num_classes') or self._num_classes is None:
+            self._num_classes = len(class_to_indices)
+        
+        return RemappedSubset(dataset, subset_indices, label_mapping)
     
     def setup(self, stage: Optional[str] = None):
         """Setup train and validation datasets with optional subsetting."""
@@ -141,6 +184,10 @@ class ImageNetDataModule(pl.LightningDataModule):
                 root=self.data_root / "train",
                 transform=train_transform
             )
+            # Store original number of classes before subsetting
+            if self.max_classes is None:
+                self._num_classes = len(full_train.classes)
+            
             # Apply subsetting if requested
             self.train_dataset = self._create_subset(
                 full_train,
@@ -161,6 +208,18 @@ class ImageNetDataModule(pl.LightningDataModule):
                 max_classes=self.max_classes,
                 max_samples_per_class=val_samples
             )
+    
+    def num_classes(self) -> int:
+        """Get the number of classes in the dataset.
+        
+        Must be called after setup() has been run.
+        """
+        if self._num_classes is None:
+            raise RuntimeError(
+                "num_classes() called before setup(). "
+                "Either call setup() first or provide max_classes during initialization."
+            )
+        return self._num_classes
     
     def _get_train_transform(self):
         """Build training data augmentation pipeline."""

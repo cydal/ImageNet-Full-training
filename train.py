@@ -90,7 +90,14 @@ def main():
     # Create data module
     datamodule = ImageNetDataModule(**config)
     
-    # Create model
+    # Setup datamodule to determine number of classes
+    datamodule.setup(stage="fit")
+    
+    # Override num_classes in config based on actual dataset
+    config["num_classes"] = datamodule.num_classes()
+    print(f"Using {config['num_classes']} classes for training")
+    
+    # Create model with correct number of classes
     model = ResNet50Module(**config)
     
     # Setup callbacks
