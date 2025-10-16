@@ -69,6 +69,10 @@ def main():
                         help="Weights & Biases run name")
     parser.add_argument("--no_wandb", action="store_true",
                         help="Disable Weights & Biases logging")
+    parser.add_argument("--max_classes", type=int, default=None,
+                        help="Maximum number of classes to use (for subset training)")
+    parser.add_argument("--max_samples_per_class", type=int, default=None,
+                        help="Maximum samples per class (for subset training)")
     
     args = parser.parse_args()
     
