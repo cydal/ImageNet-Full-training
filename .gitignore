@@ -61,3 +61,6 @@ ENV/
 
 # Hosts file for multi-node training
 hosts.txt
+
+# FSx configuration (contains filesystem IDs)
+configs/fsx_config.sh
