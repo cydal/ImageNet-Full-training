@@ -24,7 +24,7 @@ epochs: 600  # Extended training (A2 uses 600 epochs)
 optimizer: sgd
 lr: 0.5  # Base LR for batch_size=256, scale linearly for larger batches
 momentum: 0.9
-weight_decay: 2e-5  # Reduced from standard 1e-4
+weight_decay: 0.00002  # Reduced from standard 1e-4 (2e-5)
 lr_scheduler: cosine
 warmup_epochs: 5
 

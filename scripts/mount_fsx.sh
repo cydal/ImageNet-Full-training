@@ -175,6 +175,177 @@ fi
 
 echo ""
 echo "=========================================="
+echo "Checking and lazy-loading directories..."
+echo "=========================================="
+
+# Build list of expected directories
+DIRS_TO_CHECK=()
+
+# If EXPECTED_DIRS is set from config, use it
+if [ ${#EXPECTED_DIRS[@]} -gt 0 ]; then
+    for DIR in "${EXPECTED_DIRS[@]}"; do
+        DIRS_TO_CHECK+=("${MOUNT_POINT}${DIR}")
+    done
+    echo "Using directories from config: ${#DIRS_TO_CHECK[@]} paths"
+else
+    # Otherwise, try to get from DRA
+    if command -v aws &> /dev/null; then
+        DRA_PATHS=$(aws fsx describe-data-repository-associations \
+            --filters Name=file-system-id,Values="$FSX_ID" \
+            --query 'Associations[*].FileSystemPath' \
+            --output text 2>/dev/null || echo "")
+        
+        if [[ -n "$DRA_PATHS" ]]; then
+            for DRA_PATH in $DRA_PATHS; do
+                DIRS_TO_CHECK+=("${MOUNT_POINT}${DRA_PATH}/train")
+                DIRS_TO_CHECK+=("${MOUNT_POINT}${DRA_PATH}/val")
+            done
+            echo "Auto-detected from DRA: ${#DIRS_TO_CHECK[@]} paths"
+        fi
+    fi
+    
+    # Fallback to common paths
+    if [ ${#DIRS_TO_CHECK[@]} -eq 0 ]; then
+        DIRS_TO_CHECK=("${MOUNT_POINT}/ns1/train" "${MOUNT_POINT}/ns1/val")
+        echo "Using default paths: ${#DIRS_TO_CHECK[@]} paths"
+    fi
+fi
+
+# Trigger lazy-loading by accessing each directory
+echo ""
+echo "Triggering lazy-load for all directories..."
+LAZY_LOADED=0
+for DIR in "${DIRS_TO_CHECK[@]}"; do
+    echo -n "Checking: $DIR ... "
+    
+    # Access the directory to trigger FSx lazy-load
+    if ls "$DIR" >/dev/null 2>&1; then
+        CLASS_COUNT=$(ls -1 "$DIR" 2>/dev/null | wc -l)
+        echo "✓ ($CLASS_COUNT items)"
+        LAZY_LOADED=$((LAZY_LOADED + 1))
+    else
+        echo "✗ Not accessible"
+    fi
+done
+
+echo ""
+echo "Lazy-loaded $LAZY_LOADED out of ${#DIRS_TO_CHECK[@]} directories"
+
+# Verify against expected counts if provided
+if [ -n "$EXPECTED_TRAIN_CLASSES" ] || [ -n "$EXPECTED_VAL_CLASSES" ]; then
+    echo ""
+    echo "Verifying class counts..."
+    
+    for DIR in "${DIRS_TO_CHECK[@]}"; do
+        if [[ "$DIR" == *"/train" ]] && [ -n "$EXPECTED_TRAIN_CLASSES" ]; then
+            ACTUAL=$(ls -1 "$DIR" 2>/dev/null | wc -l)
+            if [ "$ACTUAL" -eq "$EXPECTED_TRAIN_CLASSES" ]; then
+                echo "✓ Train: $ACTUAL classes (expected $EXPECTED_TRAIN_CLASSES)"
+            else
+                echo "⚠ Train: $ACTUAL classes (expected $EXPECTED_TRAIN_CLASSES)"
+            fi
+        elif [[ "$DIR" == *"/val" ]] && [ -n "$EXPECTED_VAL_CLASSES" ]; then
+            ACTUAL=$(ls -1 "$DIR" 2>/dev/null | wc -l)
+            if [ "$ACTUAL" -eq "$EXPECTED_VAL_CLASSES" ]; then
+                echo "✓ Val: $ACTUAL classes (expected $EXPECTED_VAL_CLASSES)"
+            else
+                echo "⚠ Val: $ACTUAL classes (expected $EXPECTED_VAL_CLASSES)"
+            fi
+        fi
+    done
+fi
+
+# Check if any directories are still missing
+MISSING_DIRS=()
+for DIR in "${DIRS_TO_CHECK[@]}"; do
+    if [ ! -d "$DIR" ]; then
+        MISSING_DIRS+=("$DIR")
+    fi
+done
+
+# If directories are missing, offer to import metadata
+if [ ${#MISSING_DIRS[@]} -gt 0 ]; then
+    echo ""
+    echo "=========================================="
+    echo "⚠️  WARNING: Missing directories detected"
+    echo "=========================================="
+    echo "Missing: ${MISSING_DIRS[@]}"
+    echo ""
+    echo "This usually means FSx metadata needs to be imported from S3."
+    echo ""
+    
+    if command -v aws &> /dev/null; then
+        read -p "Import metadata from S3 now? (y/N) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo "Starting metadata import task..."
+            
+            TASK_ID=$(aws fsx create-data-repository-task \
+                --type IMPORT_METADATA_FROM_REPOSITORY \
+                --file-system-id "$FSX_ID" \
+                --report Enabled=false \
+                --query 'DataRepositoryTask.TaskId' \
+                --output text 2>&1)
+            
+            if [[ $? -eq 0 && -n "$TASK_ID" ]]; then
+                echo "✓ Import task created: $TASK_ID"
+                echo ""
+                echo "Monitoring progress (Ctrl+C to stop monitoring, task will continue)..."
+                
+                while true; do
+                    STATUS=$(aws fsx describe-data-repository-tasks \
+                        --task-ids "$TASK_ID" \
+                        --query 'DataRepositoryTasks[0].Lifecycle' \
+                        --output text 2>/dev/null)
+                    
+                    if [[ "$STATUS" == "SUCCEEDED" ]]; then
+                        echo ""
+                        echo "✓ Metadata import completed successfully!"
+                        echo ""
+                        echo "Verifying directories..."
+                        for DIR in "${MISSING_DIRS[@]}"; do
+                            if [ -d "$DIR" ]; then
+                                COUNT=$(ls -1 "$DIR" 2>/dev/null | wc -l)
+                                echo "✓ Now visible: $DIR ($COUNT items)"
+                            else
+                                echo "✗ Still missing: $DIR"
+                            fi
+                        done
+                        break
+                    elif [[ "$STATUS" == "FAILED" ]] || [[ "$STATUS" == "CANCELED" ]]; then
+                        echo ""
+                        echo "✗ Import failed with status: $STATUS"
+                        aws fsx describe-data-repository-tasks --task-ids "$TASK_ID"
+                        break
+                    else
+                        echo "$(date +%H:%M:%S) - Status: $STATUS"
+                        sleep 5
+                    fi
+                done
+            else
+                echo "✗ Failed to create import task"
+                echo "$TASK_ID"
+                echo ""
+                echo "You can manually import later with:"
+                echo "  ./scripts/import_fsx_metadata.sh"
+            fi
+        else
+            echo ""
+            echo "Skipping metadata import."
+            echo "To import later, run:"
+            echo "  export FSX_ID=$FSX_ID"
+            echo "  ./scripts/import_fsx_metadata.sh"
+        fi
+    else
+        echo "AWS CLI not available. To import metadata, run:"
+        echo "  export FSX_ID=$FSX_ID"
+        echo "  ./scripts/import_fsx_metadata.sh"
+    fi
+fi
+
+echo ""
+echo "=========================================="
 echo "FSx mount complete!"
 echo "=========================================="
 echo "Mount point: $MOUNT_POINT"
