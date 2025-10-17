@@ -1,0 +1,68 @@
+# Single GPU Full Training Configuration
+# Practical config for testing full training pipeline before scaling to multi-node
+# Based on ResNet Strikes Back principles but with shorter training time
+
+# Data settings
+data_root: /fsx/ns1  # FSx mount point with ImageNet (train/ and val/ subdirectories)
+img_size: 224
+batch_size: 128  # Reduced for single GPU (adjust based on GPU memory)
+num_workers: 8
+pin_memory: true
+persistent_workers: true
+
+# Model settings
+model_name: resnet50
+pretrained: false
+num_classes: 1000
+
+# Image preprocessing (ImageNet standard)
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Training hyperparameters
+epochs: 100  # Shorter than full 600, but enough to verify pipeline
+optimizer: sgd
+lr: 0.25  # Scaled for batch_size=128 (0.5 * 128/256)
+momentum: 0.9
+weight_decay: 2e-5  # ResNet Strikes Back value
+lr_scheduler: cosine
+warmup_epochs: 5
+max_epochs: 100  # For LR scheduler
+
+# Mixed precision training (essential for speed)
+precision: 16-mixed
+
+# Augmentation (ResNet Strikes Back recipe)
+random_crop: true
+random_horizontal_flip: true
+auto_augment: null
+mixup_alpha: 0.2
+cutmix_alpha: 1.0
+label_smoothing: 0.1
+
+# Regularization
+use_ema: false
+gradient_clip_val: null
+
+# Logging
+log_every_n_steps: 50
+val_check_interval: 1.0  # Validate every epoch
+
+# Checkpointing
+save_top_k: 3
+monitor: val/acc1
+mode: max
+
+# Single GPU settings
+devices: 1
+strategy: auto  # Will use single device strategy
+sync_batchnorm: false  # Not needed for single GPU
+
+# Reproducibility
+seed: 42
+deterministic: false
+
+# Expected results after 100 epochs:
+# - Top-1 accuracy: ~77-78%
+# - Training time: ~7-10 days on single V100/A100
+# - Good enough to verify pipeline before multi-node scaling

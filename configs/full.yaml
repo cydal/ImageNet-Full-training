@@ -5,7 +5,7 @@
 data_root: /fsx/imagenet
 img_size: 224
 batch_size: 256
-num_workers: 12
+num_workers: 8
 
 # Training settings
 epochs: 90
