@@ -11,6 +11,8 @@ from typing import Optional, Dict, Any
 
 from utils.metrics import accuracy
 
+torch.set_float32_matmul_precision('medium')
+
 
 class ResNet50Module(pl.LightningModule):
     """
@@ -31,6 +33,7 @@ class ResNet50Module(pl.LightningModule):
         mixup_alpha: float = 0.0,
         cutmix_alpha: float = 0.0,
         label_smoothing: float = 0.0,
+        compile_model: bool = False,
         **kwargs
     ):
         super().__init__()
@@ -46,6 +49,13 @@ class ResNet50Module(pl.LightningModule):
         if num_classes != 1000:
             self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
         
+        # Compile model for faster training (PyTorch 2.0+)
+        if compile_model:
+            self.model = torch.compile(self.model, mode='max-autotune')
+        
+        # Use channels_last memory format for better Tensor Core utilization
+        self.model = self.model.to(memory_format=torch.channels_last)
+        
         # Loss function
         self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
         
@@ -59,6 +69,9 @@ class ResNet50Module(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         images, targets = batch
+        
+        # Convert to channels_last for better performance
+        images = images.to(memory_format=torch.channels_last)
         
         # Apply mixup/cutmix if enabled
         if self.hparams.mixup_alpha > 0 or self.hparams.cutmix_alpha > 0:
@@ -96,6 +109,10 @@ class ResNet50Module(pl.LightningModule):
     
     def validation_step(self, batch, batch_idx):
         images, targets = batch
+        
+        # Convert to channels_last for better performance
+        images = images.to(memory_format=torch.channels_last)
+        
         outputs = self(images)
         loss = self.criterion(outputs, targets)
         

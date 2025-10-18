@@ -83,6 +83,7 @@ class ImageNetDataModule(pl.LightningDataModule):
         std: tuple = (0.229, 0.224, 0.225),
         pin_memory: bool = True,
         persistent_workers: bool = True,
+        prefetch_factor: Optional[int] = None,
         random_crop: bool = True,
         random_horizontal_flip: bool = True,
         auto_augment: Optional[str] = None,
@@ -96,6 +97,7 @@ class ImageNetDataModule(pl.LightningDataModule):
         self.data_root = Path(data_root)
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.prefetch_factor = prefetch_factor
         self.img_size = img_size
         self.mean = mean
         self.std = std
@@ -278,24 +280,28 @@ class ImageNetDataModule(pl.LightningDataModule):
     
     def train_dataloader(self):
         """Return training dataloader."""
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            persistent_workers=self.persistent_workers if self.num_workers > 0 else False,
-            drop_last=True
-        )
+        loader_kwargs = {
+            "batch_size": self.batch_size,
+            "shuffle": True,
+            "num_workers": self.num_workers,
+            "pin_memory": self.pin_memory,
+            "persistent_workers": self.persistent_workers if self.num_workers > 0 else False,
+            "drop_last": True
+        }
+        if self.prefetch_factor is not None and self.num_workers > 0:
+            loader_kwargs["prefetch_factor"] = self.prefetch_factor
+        return DataLoader(self.train_dataset, **loader_kwargs)
     
     def val_dataloader(self):
         """Return validation dataloader."""
-        return DataLoader(
-            self.val_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
-            persistent_workers=self.persistent_workers if self.num_workers > 0 else False,
-            drop_last=False
-        )
+        loader_kwargs = {
+            "batch_size": self.batch_size,
+            "shuffle": False,
+            "num_workers": self.num_workers,
+            "pin_memory": self.pin_memory,
+            "persistent_workers": self.persistent_workers if self.num_workers > 0 else False,
+            "drop_last": False
+        }
+        if self.prefetch_factor is not None and self.num_workers > 0:
+            loader_kwargs["prefetch_factor"] = self.prefetch_factor
+        return DataLoader(self.val_dataset, **loader_kwargs)
