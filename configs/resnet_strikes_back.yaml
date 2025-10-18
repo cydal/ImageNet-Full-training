@@ -6,14 +6,16 @@
 data_root: /fsx/ns1  # FSx mount point
 img_size: 224
 batch_size: 256  # Per GPU (will be scaled for multi-GPU)
-num_workers: 8
+num_workers: 12  # Optimized for FSx throughput
 pin_memory: true
 persistent_workers: true
+prefetch_factor: 3  # Pre-load batches for better throughput
 
 # Model settings
 model_name: resnet50
 pretrained: false
 num_classes: 1000
+compile_model: true  # PyTorch 2.0+ compilation for speed
 
 # Image preprocessing (ImageNet standard)
 mean: [0.485, 0.456, 0.406]
@@ -27,6 +29,7 @@ momentum: 0.9
 weight_decay: 0.00002  # Reduced from standard 1e-4 (2e-5)
 lr_scheduler: cosine
 warmup_epochs: 5
+max_epochs: 600  # Required for cosine scheduler
 
 # Mixed precision training
 precision: 16-mixed  # Faster training with minimal accuracy loss

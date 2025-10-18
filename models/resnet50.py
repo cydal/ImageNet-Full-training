@@ -89,8 +89,12 @@ class ResNet50Module(pl.LightningModule):
             self.train_acc5_sum += acc5.item() * images.size(0)
             self.train_samples += images.size(0)
         
-        # Log
+        # Log loss and learning rate
         self.log("train/loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        
+        # Log current learning rate
+        current_lr = self.optimizers().param_groups[0]['lr']
+        self.log("train/lr", current_lr, on_step=True, on_epoch=False, prog_bar=False)
         
         return loss
     
@@ -202,6 +206,7 @@ class ResNet50Module(pl.LightningModule):
         
         # Learning rate scheduler
         if self.hparams.lr_scheduler.lower() == "cosine":
+            # Cosine annealing after warmup
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                 optimizer,
                 T_max=self.hparams.max_epochs - self.hparams.warmup_epochs,
@@ -235,7 +240,8 @@ class ResNet50Module(pl.LightningModule):
             "lr_scheduler": {
                 "scheduler": scheduler,
                 "interval": "epoch",
-                "frequency": 1
+                "frequency": 1,
+                "monitor": "val/loss"
             }
         }
 
