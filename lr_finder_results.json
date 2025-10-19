@@ -1,0 +1,7 @@
+{
+  "suggested_lr": 0.3566886605846405,
+  "config_lr": 0.5,
+  "min_lr_tested": 0.001,
+  "max_lr_tested": 5.0,
+  "num_steps": 100
+}

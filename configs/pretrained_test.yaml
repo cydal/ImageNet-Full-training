@@ -1,0 +1,63 @@
+# Pretrained Test Configuration
+# Use ImageNet pretrained weights and fine-tune on 100-class subset
+# This will help diagnose if the issue is with training from scratch
+
+data_root: /mnt/nvme_data/imagenet_subset
+img_size: 224
+
+batch_size: 256
+num_workers: 8
+pin_memory: true
+persistent_workers: true
+prefetch_factor: 2
+
+model_name: resnet50
+pretrained: true  # KEY CHANGE: Use pretrained weights
+num_classes: 100
+compile_model: false
+
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Fine-tuning hyperparameters
+epochs: 20
+optimizer: sgd
+lr: 0.01  # Lower LR for fine-tuning (typical: 0.01-0.001)
+momentum: 0.9
+weight_decay: 0.0001  # Slightly higher for fine-tuning
+lr_scheduler: cosine
+warmup_epochs: 1
+max_epochs: 20
+
+precision: 16-mixed
+
+# Standard augmentation
+random_crop: true
+random_horizontal_flip: true
+auto_augment: null
+mixup_alpha: 0.0
+cutmix_alpha: 0.0
+label_smoothing: 0.1
+
+use_ema: false
+gradient_clip_val: null
+
+log_every_n_steps: 20
+val_check_interval: 1.0
+
+save_top_k: 3
+monitor: val/acc1
+mode: max
+
+devices: 1
+strategy: auto
+sync_batchnorm: false
+
+seed: 42
+deterministic: false
+
+# Expected behavior with pretrained weights:
+# - Should start with reasonable accuracy (transfer learning)
+# - Should improve quickly (within 5-10 epochs)
+# - Should reach 70-80% on 100 classes
+# - If this ALSO fails, the problem is elsewhere (data, implementation, etc.)

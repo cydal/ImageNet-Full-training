@@ -1,0 +1,76 @@
+# Optimized Test Configuration
+# Addresses S3 bottleneck with aggressive prefetching and caching
+
+# Data settings - SUBSET for fast testing
+data_root: /mnt/s3-imagenet/imagenet
+img_size: 224
+max_classes: 100
+max_samples_per_class: 500
+subset_seed: 42
+
+# OPTIMIZED: Aggressive data loading to hide S3 latency
+batch_size: 256
+num_workers: 16  # INCREASED: More workers to parallelize S3 reads
+pin_memory: true
+persistent_workers: true
+prefetch_factor: 4  # INCREASED: Prefetch more batches to hide latency
+
+# Model settings
+model_name: resnet50
+pretrained: false
+num_classes: 100
+compile_model: false  # Keep disabled for faster startup
+
+# Image preprocessing
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Training hyperparameters
+epochs: 5
+optimizer: sgd
+lr: 0.5
+momentum: 0.9
+weight_decay: 0.00002
+lr_scheduler: cosine
+warmup_epochs: 1
+max_epochs: 5
+
+# Mixed precision
+precision: 16-mixed
+
+# Minimal augmentation for speed
+random_crop: true
+random_horizontal_flip: true
+auto_augment: null
+mixup_alpha: 0.0
+cutmix_alpha: 0.0
+label_smoothing: 0.1
+
+# Regularization
+use_ema: false
+gradient_clip_val: null
+
+# Logging
+log_every_n_steps: 10
+val_check_interval: 1.0
+
+# Checkpointing
+save_top_k: 1  # Save less checkpoints
+monitor: val/acc1
+mode: max
+
+# Single GPU
+devices: 1
+strategy: auto
+sync_batchnorm: false
+
+# Reproducibility
+seed: 42
+deterministic: false
+
+# Performance notes:
+# - 16 workers * 4 prefetch = 64 batches in flight
+# - This should keep GPU fed even with S3 latency
+# - System RAM usage: ~16-20GB (safe for 62GB system)
+# - First epoch will still be slow (cold S3 cache)
+# - Subsequent epochs should be much faster

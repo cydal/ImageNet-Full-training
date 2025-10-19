@@ -3,7 +3,7 @@
 # Based on ResNet Strikes Back principles but with shorter training time
 
 # Data settings
-data_root: /fsx/ns1  # FSx mount point with ImageNet (train/ and val/ subdirectories)
+data_root: /mnt/s3-imagenet/imagenet  # S3 mount point with ImageNet (train/ and val/ subdirectories)
 img_size: 224
 batch_size: 256  # Balanced for A10G (23GB) without OOM
 num_workers: 12  # Balanced: 12 workers * 3 prefetch * 256 batch * 230MB ≈ 8GB RAM

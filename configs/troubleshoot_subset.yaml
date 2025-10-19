@@ -1,0 +1,80 @@
+# Troubleshooting Configuration - Subset Training
+# Purpose: Debug training issues with conservative settings
+# Use this to verify the training pipeline works before scaling up
+
+# Data settings
+data_root: /mnt/s3-imagenet  # S3 direct mount (or change to local path)
+img_size: 224
+batch_size: 128  # Conservative batch size for single GPU
+num_workers: 8   # Moderate workers
+pin_memory: true
+persistent_workers: true
+prefetch_factor: 2  # Conservative prefetch
+
+# Subset settings - CRITICAL FOR FAST ITERATION
+max_classes: 100  # Use only 100 classes (10% of ImageNet)
+max_samples_per_class: 500  # 500 images per class = 50K total (vs 1.28M)
+subset_seed: 42
+
+# Model settings
+model_name: resnet50
+pretrained: false
+num_classes: 100  # Match max_classes
+compile_model: false  # Disable for easier debugging
+
+# Image preprocessing (ImageNet standard)
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Training hyperparameters - CONSERVATIVE FOR DEBUGGING
+epochs: 20  # Short run to verify learning
+optimizer: sgd
+lr: 0.05  # MUCH lower than 0.4 - conservative starting point
+momentum: 0.9
+weight_decay: 0.0001  # Standard weight decay (1e-4)
+lr_scheduler: cosine
+warmup_epochs: 2  # Short warmup
+max_epochs: 20
+
+# Mixed precision
+precision: 16-mixed
+
+# Augmentation - MINIMAL FOR DEBUGGING
+random_crop: true
+random_horizontal_flip: true
+auto_augment: null
+mixup_alpha: 0.0  # Disabled - easier to see if model learns
+cutmix_alpha: 0.0  # Disabled - easier to see if model learns
+label_smoothing: 0.0  # Disabled - easier to see if model learns
+
+# Regularization
+use_ema: false
+gradient_clip_val: null
+
+# Logging - FREQUENT FOR DEBUGGING
+log_every_n_steps: 10  # Log often
+val_check_interval: 1.0  # Validate every epoch
+
+# Checkpointing
+save_top_k: 3
+monitor: val/acc1
+mode: max
+
+# Single GPU settings
+devices: 1
+strategy: auto
+sync_batchnorm: false
+
+# Reproducibility
+seed: 42
+deterministic: false
+
+# Expected results:
+# - With 100 classes and no augmentation, should see:
+#   * Epoch 1: val/acc1 ~5-10% (random is 1%)
+#   * Epoch 5: val/acc1 ~30-40%
+#   * Epoch 10: val/acc1 ~50-60%
+#   * Epoch 20: val/acc1 ~65-75%
+# - Training should be FAST: ~2-3 min per epoch
+# - If val/acc1 stays near 1%, LR is too high or model isn't learning
+# - If loss doesn't decrease, check data loading or model initialization

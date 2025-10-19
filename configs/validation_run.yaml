@@ -1,0 +1,73 @@
+# Validation Run Configuration
+# Longer training to confirm model learns and converges
+# 50 epochs should show clear learning curve and convergence
+
+# Data settings - LOCAL SUBSET
+data_root: /mnt/nvme_data/imagenet_subset
+img_size: 224
+
+# Batch size optimized for A10G (23GB GPU)
+batch_size: 256
+num_workers: 8
+pin_memory: true
+persistent_workers: true
+prefetch_factor: 2
+
+# Model settings
+model_name: resnet50
+pretrained: false
+num_classes: 100
+compile_model: false  # Keep disabled for stability
+
+# Image preprocessing (ImageNet standard)
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Training hyperparameters - TUNED
+epochs: 50  # Long enough to see convergence
+optimizer: sgd
+lr: 0.357  # LR finder suggested
+momentum: 0.9
+weight_decay: 0.00002  # ResNet Strikes Back value
+lr_scheduler: cosine
+warmup_epochs: 5  # Longer warmup for stability
+max_epochs: 50
+
+# Mixed precision training
+precision: 16-mixed
+
+# Augmentation (standard ImageNet)
+random_crop: true
+random_horizontal_flip: true
+auto_augment: null
+mixup_alpha: 0.0
+cutmix_alpha: 0.0
+label_smoothing: 0.1
+
+# Regularization
+use_ema: false
+gradient_clip_val: null
+
+# Logging - more frequent for monitoring
+log_every_n_steps: 20
+val_check_interval: 1.0  # Validate every epoch
+
+# Checkpointing
+save_top_k: 3
+monitor: val/acc1
+mode: max
+
+# Single GPU settings
+devices: 1
+strategy: auto
+sync_batchnorm: false
+
+# Reproducibility
+seed: 42
+deterministic: false
+
+# Expected results after 50 epochs on 100 classes:
+# - Top-1 accuracy: ~65-75% (100-way is easier than 1000-way)
+# - Top-5 accuracy: ~85-90%
+# - Training time: ~55 minutes (50 epochs × 67s)
+# - Should see clear learning curve and convergence
