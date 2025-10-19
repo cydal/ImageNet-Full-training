@@ -1,0 +1,63 @@
+# Full Training with Corrected Validation Data
+# Training from scratch with full augmentation
+# Using the CORRECTED S3 validation data
+
+data_root: /mnt/nvme_data/imagenet_subset
+img_size: 224
+
+batch_size: 256
+num_workers: 8
+pin_memory: true
+persistent_workers: true
+prefetch_factor: 2
+
+model_name: resnet50
+pretrained: false  # Train from scratch
+num_classes: 100
+compile_model: false
+
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Training hyperparameters - VALIDATED
+epochs: 50
+optimizer: sgd
+lr: 0.5  # LR finder validated: 0.501
+momentum: 0.9
+weight_decay: 0.00002  # ResNet Strikes Back value
+lr_scheduler: cosine
+warmup_epochs: 5
+max_epochs: 50
+
+precision: 16-mixed
+
+# Full augmentation (ResNet Strikes Back recipe)
+random_crop: true
+random_horizontal_flip: true
+auto_augment: rand-m9-mstd0.5-inc1  # RandAugment with magnitude 9
+mixup_alpha: 0.2  # Mixup augmentation
+cutmix_alpha: 1.0  # CutMix augmentation
+label_smoothing: 0.1  # Label smoothing
+
+use_ema: false
+gradient_clip_val: null
+
+log_every_n_steps: 20
+val_check_interval: 1.0
+
+save_top_k: 3
+monitor: val/acc1
+mode: max
+
+devices: 1
+strategy: auto
+sync_batchnorm: false
+
+seed: 42
+deterministic: false
+
+# Expected results with CORRECTED validation data:
+# - Val accuracy should improve steadily
+# - Should reach 60-75% val accuracy on 100 classes (from scratch)
+# - Train and val should improve together
+# - No massive train/val gap (augmentation helps generalization)
