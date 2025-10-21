@@ -3,10 +3,10 @@
 # Target: ~80.4% top-1 accuracy on ImageNet with ResNet-50
 
 # Data settings
-data_root: /opt/dlami/nvme/imagenet  # Local NVMe for fast random I/O
+data_root: /mnt/imagenet-data/imagenet  # Mounted EBS volume with ImageNet data
 img_size: 224
-batch_size: 256  # Per GPU, stable training (8 GPUs = 2048 effective)
-num_workers: 24  # Per GPU (8 GPUs * 24 = 192 workers; heavily oversubscribe for I/O)
+batch_size: 384  # Per GPU (8 GPUs = 3072 effective batch)
+num_workers: 32  # Per GPU (8 GPUs * 32 = 256 workers)
 pin_memory: true
 persistent_workers: true
 prefetch_factor: 6  # Very aggressive prefetching to saturate GPUs
@@ -15,7 +15,7 @@ prefetch_factor: 6  # Very aggressive prefetching to saturate GPUs
 model_name: resnet50
 pretrained: false
 num_classes: 1000
-compile_model: false  # Disabled to focus on data loading optimization
+compile_model: true  # PyTorch 2.0+ compilation for speed
 
 # Image preprocessing (ImageNet standard)
 mean: [0.485, 0.456, 0.406]
@@ -24,12 +24,13 @@ std: [0.229, 0.224, 0.225]
 # Training hyperparameters (ResNet Strikes Back A2 recipe)
 epochs: 600  # Extended training (A2 uses 600 epochs)
 optimizer: sgd
-lr: 0.1  # Baseline single-GPU LR, NO scaling (very conservative)
+lr: 6.0  # LR finder: 0.5 for 1 GPU @ batch 256, scaled: 0.5 * 8 * (384/256) = 6.0
 momentum: 0.9
 weight_decay: 0.0001  # Standard for from-scratch training (1e-4)
 lr_scheduler: cosine
-warmup_epochs: 30  # Very long warmup for stability
-max_epochs: 600  # Required for cosine scheduler
+warmup_epochs: 5  # Standard warmup (ResNet Strikes Back A2)
+max_epochs: 600  # Total training epochs
+cosine_t_max: 120  # Cosine decay period (LR decays to 0 by epoch 125, then stays low)
 
 # Mixed precision training
 precision: 16-mixed  # Faster training with minimal accuracy loss
@@ -38,9 +39,9 @@ precision: 16-mixed  # Faster training with minimal accuracy loss
 random_crop: true
 random_horizontal_flip: true
 auto_augment: null  # No AutoAugment in base recipe
-mixup_alpha: 0.0  # Disabled for debugging
-cutmix_alpha: 0.0  # Disabled for debugging
-label_smoothing: 0.1  # Label smoothing
+mixup_alpha: 0.2  # Mixup (ResNet Strikes Back A2)
+cutmix_alpha: 1.0  # CutMix (ResNet Strikes Back A2)
+label_smoothing: 0.1  # Label smoothing (ResNet Strikes Back A2)
 
 # Regularization
 use_ema: false  # Not used in base ResNet Strikes Back

@@ -30,6 +30,7 @@ class ResNet50Module(pl.LightningModule):
         lr_scheduler: str = "cosine",
         warmup_epochs: int = 5,
         max_epochs: int = 90,
+        cosine_t_max: int = None,  # If None, uses max_epochs - warmup_epochs
         mixup_alpha: float = 0.0,
         cutmix_alpha: float = 0.0,
         label_smoothing: float = 0.0,
@@ -207,9 +208,11 @@ class ResNet50Module(pl.LightningModule):
         # Learning rate scheduler
         if self.hparams.lr_scheduler.lower() == "cosine":
             # Cosine annealing after warmup
+            # Use cosine_t_max if specified, otherwise use max_epochs - warmup_epochs
+            t_max = self.hparams.cosine_t_max if self.hparams.cosine_t_max is not None else (self.hparams.max_epochs - self.hparams.warmup_epochs)
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                 optimizer,
-                T_max=self.hparams.max_epochs - self.hparams.warmup_epochs,
+                T_max=t_max,
                 eta_min=0
             )
         elif self.hparams.lr_scheduler.lower() == "step":
