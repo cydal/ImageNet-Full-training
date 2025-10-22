@@ -30,7 +30,8 @@ weight_decay: 0.0001  # Standard for from-scratch training (1e-4)
 lr_scheduler: cosine
 warmup_epochs: 5  # Standard warmup (ResNet Strikes Back A2)
 max_epochs: 600  # Total training epochs
-cosine_t_max: 120  # Cosine decay period (LR decays to 0 by epoch 125, then stays low)
+cosine_t_max: 100  # Fast decay over 100 epochs
+eta_min: 1.0e-6  # Minimum LR (never reach exactly 0)
 
 # Mixed precision training
 precision: 16-mixed  # Faster training with minimal accuracy loss
