@@ -24,14 +24,14 @@ std: [0.229, 0.224, 0.225]
 # Training hyperparameters (ResNet Strikes Back A2 recipe)
 epochs: 600  # Extended training (A2 uses 600 epochs)
 optimizer: sgd
-lr: 6.0  # LR finder: 0.5 for 1 GPU @ batch 256, scaled: 0.5 * 8 * (384/256) = 6.0
+lr: 2.0e-4  # From LR range test at epoch 124 (steepest descent)
 momentum: 0.9
 weight_decay: 0.0001  # Standard for from-scratch training (1e-4)
-lr_scheduler: cosine
-warmup_epochs: 5  # Standard warmup (ResNet Strikes Back A2)
+lr_scheduler: cosine  # Cosine decay
+warmup_epochs: 0  # No warmup (resuming from epoch 124)
 max_epochs: 600  # Total training epochs
-cosine_t_max: 100  # Fast decay over 100 epochs
-eta_min: 1.0e-6  # Minimum LR (never reach exactly 0)
+cosine_t_max: 476  # Decay from epoch 124 to 600
+eta_min: 1.0e-5  # Minimum LR (10x higher than before to avoid divergence)
 
 # Mixed precision training
 precision: 16-mixed  # Faster training with minimal accuracy loss
