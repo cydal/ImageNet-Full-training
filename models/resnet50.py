@@ -173,12 +173,9 @@ class ResNet50Module(pl.LightningModule):
         # Convert to channels_last for better performance
         images = images.to(memory_format=torch.channels_last)
         
-        # Use EMA model for validation if available
-        if self.ema_model is not None:
-            with torch.no_grad():
-                outputs = self.ema_model(images)
-        else:
-            outputs = self(images)
+        # Use the main model for validation (EMA disabled for debugging)
+        # TODO: Re-enable EMA once we verify training works
+        outputs = self(images)
         
         # Compute loss - use validation criterion (handles hard labels)
         loss = self.val_criterion(outputs, targets)
@@ -348,14 +345,26 @@ class ResNet50Module(pl.LightningModule):
         """Update EMA model weights."""
         if self.ema_model is None:
             # Initialize EMA model on first call
-            self.ema_model = deepcopy(self.model)
+            # Don't copy compiled model - copy the underlying model
+            if hasattr(self.model, '_orig_mod'):
+                # torch.compile wraps the model
+                self.ema_model = deepcopy(self.model._orig_mod)
+            else:
+                self.ema_model = deepcopy(self.model)
             self.ema_model.eval()
+            self.ema_model = self.ema_model.to(self.device)
             for param in self.ema_model.parameters():
                 param.requires_grad = False
         else:
             # Update EMA weights: ema = decay * ema + (1 - decay) * model
             with torch.no_grad():
-                for ema_param, model_param in zip(self.ema_model.parameters(), self.model.parameters()):
+                # Get the actual model parameters (unwrap if compiled)
+                if hasattr(self.model, '_orig_mod'):
+                    model_params = self.model._orig_mod.parameters()
+                else:
+                    model_params = self.model.parameters()
+                
+                for ema_param, model_param in zip(self.ema_model.parameters(), model_params):
                     ema_param.data.mul_(self.ema_decay).add_(model_param.data, alpha=1 - self.ema_decay)
 
 
