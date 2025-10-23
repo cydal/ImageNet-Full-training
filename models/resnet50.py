@@ -5,13 +5,53 @@ Wraps torchvision ResNet50 with training logic.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.models as models
 import lightning.pytorch as pl
+from torchmetrics.functional import accuracy
+from copy import deepcopy
 from torchvision.models import resnet50, ResNet50_Weights
 from typing import Optional, Dict, Any
+from pytorch_lamb import Lamb
 
 from utils.metrics import accuracy
 
 torch.set_float32_matmul_precision('medium')
+
+
+class SoftTargetCrossEntropy(nn.Module):
+    """
+    Soft target cross entropy loss for mixup/cutmix.
+    Expects soft targets (probabilities) instead of hard labels.
+    """
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x, target):
+        """
+        Args:
+            x: logits (B, C)
+            target: soft targets (B, C) - probabilities that sum to 1
+        """
+        loss = torch.sum(-target * F.log_softmax(x, dim=-1), dim=-1)
+        return loss.mean()
+
+
+class BCEWithLogitsLossForMixup(nn.Module):
+    """
+    BCE loss for mixup/cutmix (RSB A2 uses this).
+    Converts soft targets to multi-label format and uses BCE.
+    """
+    def __init__(self):
+        super().__init__()
+        self.bce = nn.BCEWithLogitsLoss()
+    
+    def forward(self, x, target):
+        """
+        Args:
+            x: logits (B, C)
+            target: soft targets (B, C) - probabilities that sum to 1
+        """
+        return self.bce(x, target)
 
 
 class ResNet50Module(pl.LightningModule):
@@ -59,12 +99,23 @@ class ResNet50Module(pl.LightningModule):
         self.model = self.model.to(memory_format=torch.channels_last)
         
         # Loss function
-        self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+        # Use soft-target cross entropy for mixup/cutmix (RSB A2)
+        self.use_mixup = (mixup_alpha > 0 or cutmix_alpha > 0)
+        if self.use_mixup:
+            self.criterion = SoftTargetCrossEntropy()  # Soft-target CE for mixup/cutmix
+            self.val_criterion = nn.CrossEntropyLoss()  # Standard CE for validation (hard labels)
+        else:
+            self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+            self.val_criterion = self.criterion
         
         # Metrics
         self.train_acc1_sum = 0.0
         self.train_acc5_sum = 0.0
         self.train_samples = 0
+        
+        # EMA (Exponential Moving Average) for better evaluation
+        self.ema_model = None
+        self.ema_decay = 0.9999
     
     def forward(self, x):
         return self.model(x)
@@ -98,6 +149,9 @@ class ResNet50Module(pl.LightningModule):
         current_lr = self.optimizers().param_groups[0]['lr']
         self.log("train/lr", current_lr, on_step=True, on_epoch=False, prog_bar=False)
         
+        # Update EMA model
+        self._update_ema()
+        
         return loss
     
     def on_train_epoch_end(self):
@@ -119,10 +173,17 @@ class ResNet50Module(pl.LightningModule):
         # Convert to channels_last for better performance
         images = images.to(memory_format=torch.channels_last)
         
-        outputs = self(images)
-        loss = self.criterion(outputs, targets)
+        # Use EMA model for validation if available
+        if self.ema_model is not None:
+            with torch.no_grad():
+                outputs = self.ema_model(images)
+        else:
+            outputs = self(images)
         
-        # Compute accuracy
+        # Compute loss - use validation criterion (handles hard labels)
+        loss = self.val_criterion(outputs, targets)
+        
+        # Compute accuracy (always use hard labels)
         acc1, acc5 = accuracy(outputs, targets, topk=(1, 5))
         
         # Log
@@ -175,33 +236,67 @@ class ResNet50Module(pl.LightningModule):
         return images, targets
     
     def _mixup_criterion(self, outputs, targets):
-        """Compute loss for mixed targets."""
+        """Compute loss for mixed targets (soft targets)."""
         targets_a, targets_b, lam = targets
-        loss_a = self.criterion(outputs, targets_a)
-        loss_b = self.criterion(outputs, targets_b)
-        return lam * loss_a + (1 - lam) * loss_b
+        
+        # Convert lam to float if it's a tensor
+        if isinstance(lam, torch.Tensor):
+            lam = lam.item()
+        
+        # Create soft targets using F.one_hot and manual mixing
+        num_classes = outputs.size(1)
+        targets_a_onehot = F.one_hot(targets_a, num_classes).float()
+        targets_b_onehot = F.one_hot(targets_b, num_classes).float()
+        
+        # Mix the one-hot targets
+        soft_targets = lam * targets_a_onehot + (1.0 - lam) * targets_b_onehot
+        
+        return self.criterion(outputs, soft_targets)
     
     def configure_optimizers(self):
         """Configure optimizer and learning rate scheduler."""
+        # Separate parameters: exclude BN and bias from weight decay
+        params_with_wd = []
+        params_without_wd = []
+        
+        for name, param in self.named_parameters():
+            if not param.requires_grad:
+                continue
+            # No weight decay for BN parameters and biases
+            if 'bn' in name or 'bias' in name or 'norm' in name:
+                params_without_wd.append(param)
+            else:
+                params_with_wd.append(param)
+        
+        param_groups = [
+            {'params': params_with_wd, 'weight_decay': self.hparams.weight_decay},
+            {'params': params_without_wd, 'weight_decay': 0.0}
+        ]
+        
         # Optimizer
         if self.hparams.optimizer.lower() == "sgd":
             optimizer = torch.optim.SGD(
-                self.parameters(),
+                param_groups,
                 lr=self.hparams.lr,
-                momentum=self.hparams.momentum,
-                weight_decay=self.hparams.weight_decay
+                momentum=self.hparams.momentum
+            )
+        elif self.hparams.optimizer.lower() == "lamb":
+            # LAMB optimizer (RSB A2 uses this)
+            optimizer = Lamb(
+                param_groups,
+                lr=self.hparams.lr,
+                betas=(0.9, 0.999),
+                eps=1e-6
             )
         elif self.hparams.optimizer.lower() == "adam":
             optimizer = torch.optim.Adam(
-                self.parameters(),
-                lr=self.hparams.lr,
-                weight_decay=self.hparams.weight_decay
+                param_groups,
+                lr=self.hparams.lr
             )
         elif self.hparams.optimizer.lower() == "adamw":
             optimizer = torch.optim.AdamW(
-                self.parameters(),
-                lr=self.hparams.lr,
-                weight_decay=self.hparams.weight_decay
+                param_groups,
+                lr=self.hparams.lr
             )
         else:
             raise ValueError(f"Unknown optimizer: {self.hparams.optimizer}")
@@ -248,6 +343,20 @@ class ResNet50Module(pl.LightningModule):
                 "monitor": "val/loss"
             }
         }
+    
+    def _update_ema(self):
+        """Update EMA model weights."""
+        if self.ema_model is None:
+            # Initialize EMA model on first call
+            self.ema_model = deepcopy(self.model)
+            self.ema_model.eval()
+            for param in self.ema_model.parameters():
+                param.requires_grad = False
+        else:
+            # Update EMA weights: ema = decay * ema + (1 - decay) * model
+            with torch.no_grad():
+                for ema_param, model_param in zip(self.ema_model.parameters(), self.model.parameters()):
+                    ema_param.data.mul_(self.ema_decay).add_(model_param.data, alpha=1 - self.ema_decay)
 
 
 def create_model(config: Dict[str, Any]) -> ResNet50Module:

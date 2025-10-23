@@ -87,6 +87,7 @@ class ImageNetDataModule(pl.LightningDataModule):
         random_crop: bool = True,
         random_horizontal_flip: bool = True,
         auto_augment: Optional[str] = None,
+        random_erasing: float = 0.0,  # Random Erasing probability (RSB A2 uses 0.25)
         # Logical subsetting parameters
         max_classes: Optional[int] = None,
         max_samples_per_class: Optional[int] = None,
@@ -106,6 +107,7 @@ class ImageNetDataModule(pl.LightningDataModule):
         self.random_crop = random_crop
         self.random_horizontal_flip = random_horizontal_flip
         self.auto_augment = auto_augment
+        self.random_erasing = random_erasing
         
         # Subsetting parameters
         self.max_classes = max_classes
@@ -263,6 +265,12 @@ class ImageNetDataModule(pl.LightningDataModule):
             transforms.ToTensor(),
             transforms.Normalize(mean=self.mean, std=self.std)
         ])
+        
+        # Random Erasing (RSB A2 uses this)
+        if self.random_erasing > 0:
+            transform_list.append(
+                transforms.RandomErasing(p=self.random_erasing, scale=(0.02, 0.33), ratio=(0.3, 3.3))
+            )
         
         return transforms.Compose(transform_list)
     
