@@ -1,42 +1,0 @@
-Seed set to 42
-GPU available: False, used: False
-TPU available: False, using: 0 TPU cores
-HPU available: False, using: 0 HPUs
-
-  | Name      | Type             | Params | Mode 
--------------------------------------------------------
-0 | model     | ResNet           | 23.5 M | train
-1 | criterion | CrossEntropyLoss | 0      | train
--------------------------------------------------------
-23.5 M    Trainable params
-0         Non-trainable params
-23.5 M    Total params
-94.073    Total estimated model params size (MB)
-152       Modules in train mode
-0         Modules in eval mode
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]/home/ubuntu/miniconda3/envs/imagenet/lib/python3.11/site-packages/torch/utils/data/dataloader.py:666: UserWarning: 'pin_memory' argument is set as true but no accelerator is found, then device pinned memory won't be used.
-  warnings.warn(warn_msg)
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]Sanity Checking DataLoader 0:   0%|          | 0/2 [00:00<?, ?it/s]Sanity Checking DataLoader 0:  50%|█████     | 1/2 [00:02<00:02,  0.37it/s]Sanity Checking DataLoader 0: 100%|██████████| 2/2 [00:04<00:00,  0.49it/s]                                                                           Training: |          | 0/? [00:00<?, ?it/s]Training: |          | 0/? [00:00<?, ?it/s]Epoch 0:   0%|          | 0/7 [00:00<?, ?it/s]Epoch 0:  14%|█▍        | 1/7 [00:08<00:52,  0.11it/s]Epoch 0:  14%|█▍        | 1/7 [00:08<00:52,  0.11it/s, v_num=1, train/loss_step=1.610]Epoch 0:  29%|██▊       | 2/7 [00:17<00:43,  0.11it/s, v_num=1, train/loss_step=1.610]Epoch 0:  29%|██▊       | 2/7 [00:17<00:43,  0.11it/s, v_num=1, train/loss_step=1.630]Epoch 0:  43%|████▎     | 3/7 [00:24<00:33,  0.12it/s, v_num=1, train/loss_step=1.630]Epoch 0:  43%|████▎     | 3/7 [00:24<00:33,  0.12it/s, v_num=1, train/loss_step=2.920]
-Validation: |          | 0/? [00:00<?, ?it/s][A
-Validation: |          | 0/? [00:00<?, ?it/s][A
-Validation DataLoader 0:   0%|          | 0/2 [00:00<?, ?it/s][A
-Validation DataLoader 0:  50%|█████     | 1/2 [00:02<00:02,  0.40it/s][A
-Validation DataLoader 0: 100%|██████████| 2/2 [00:04<00:00,  0.50it/s][A
-                                                                      [AEpoch 0:  43%|████▎     | 3/7 [00:29<00:38,  0.10it/s, v_num=1, train/loss_step=2.920, val/loss=19.60, val/acc1=20.00]Epoch 0, global step 3: 'val/acc1' reached 20.00000 (best 20.00000), saving model to '/home/ubuntu/imagenet/checkpoints/resnet50-epoch=00-val/acc1=20.0000.ckpt' as top 1
-Epoch 0:  57%|█████▋    | 4/7 [00:39<00:29,  0.10it/s, v_num=1, train/loss_step=2.920, val/loss=19.60, val/acc1=20.00]Epoch 0:  57%|█████▋    | 4/7 [00:39<00:29,  0.10it/s, v_num=1, train/loss_step=4.130, val/loss=19.60, val/acc1=20.00]Epoch 0:  71%|███████▏  | 5/7 [00:46<00:18,  0.11it/s, v_num=1, train/loss_step=4.130, val/loss=19.60, val/acc1=20.00]Epoch 0:  71%|███████▏  | 5/7 [00:46<00:18,  0.11it/s, v_num=1, train/loss_step=6.540, val/loss=19.60, val/acc1=20.00]Epoch 0:  86%|████████▌ | 6/7 [00:55<00:09,  0.11it/s, v_num=1, train/loss_step=6.540, val/loss=19.60, val/acc1=20.00]Epoch 0:  86%|████████▌ | 6/7 [00:55<00:09,  0.11it/s, v_num=1, train/loss_step=7.110, val/loss=19.60, val/acc1=20.00]
-Validation: |          | 0/? [00:00<?, ?it/s][A
-Validation: |          | 0/? [00:00<?, ?it/s][A
-Validation DataLoader 0:   0%|          | 0/2 [00:00<?, ?it/s][A
-Validation DataLoader 0:  50%|█████     | 1/2 [00:03<00:03,  0.33it/s][A
-Validation DataLoader 0: 100%|██████████| 2/2 [00:03<00:00,  0.50it/s][A
-                                                                      [AEpoch 0:  86%|████████▌ | 6/7 [00:59<00:09,  0.10it/s, v_num=1, train/loss_step=7.110, val/loss=53.00, val/acc1=20.00]Epoch 0, global step 6: 'val/acc1' was not in top 1
-Epoch 0: 100%|██████████| 7/7 [01:07<00:00,  0.10it/s, v_num=1, train/loss_step=7.110, val/loss=53.00, val/acc1=20.00]Epoch 0: 100%|██████████| 7/7 [01:07<00:00,  0.10it/s, v_num=1, train/loss_step=4.690, val/loss=53.00, val/acc1=20.00]Epoch 0: 100%|██████████| 7/7 [01:07<00:00,  0.10it/s, v_num=1, train/loss_step=4.690, val/loss=53.00, val/acc1=20.00, train/loss_epoch=4.090]`Trainer.fit` stopped: `max_epochs=1` reached.
-Epoch 0: 100%|██████████| 7/7 [01:07<00:00,  0.10it/s, v_num=1, train/loss_step=4.690, val/loss=53.00, val/acc1=20.00, train/loss_epoch=4.090]
-Validation: |          | 0/? [00:00<?, ?it/s]Validation: |          | 0/? [00:00<?, ?it/s]Validation DataLoader 0:   0%|          | 0/2 [00:00<?, ?it/s]Validation DataLoader 0:  50%|█████     | 1/2 [00:03<00:03,  0.30it/s]Validation DataLoader 0: 100%|██████████| 2/2 [00:04<00:00,  0.42it/s]Validation DataLoader 0: 100%|██████████| 2/2 [00:04<00:00,  0.42it/s]
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-     Validate metric           DataLoader 0
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        val/acc1                   20.0
-        val/acc5                   100.0
-        val/loss            109.59043884277344
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

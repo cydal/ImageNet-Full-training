@@ -1,0 +1,96 @@
+# ResNet Strikes Back (A2) - Continuation Training (Epochs 300-600)
+# Continuing from epoch 300 checkpoint to push toward 80%
+# Strategy: Conservative LR restart + aggressive augmentation + gradient accumulation
+
+# Data settings
+data_root: /mnt/imagenet-data/imagenet  # Mounted EBS volume with ImageNet data
+batch_size: 256  # Per GPU (8 GPUs = 2048 effective batch) - RSB A2 standard
+num_workers: 24  # Per GPU (8 GPUs * 24 = 192 workers)
+pin_memory: true
+persistent_workers: true
+prefetch_factor: 6  # Very aggressive prefetching to saturate GPUs
+
+# Model settings
+model_name: resnet50
+pretrained: false
+num_classes: 1000
+compile_model: true  # PyTorch 2.0+ compilation for speed
+
+# Image preprocessing (ImageNet standard)
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Training hyperparameters (ResNet Strikes Back A2 recipe)
+epochs: 600  # Total epochs (continuing from 300 to 600)
+optimizer: lamb  # LAMB optimizer (critical for RSB A2)
+lr: 1.0e-4  # Peak LR after warmup (conservative, 1/50th of original 5e-3)
+momentum: 0.9  # Not used with LAMB
+weight_decay: 0.02  # RSB A2 uses 0.02-0.03
+lr_scheduler: cosine  # Cosine decay
+warmup_epochs: 10  # Gentle ramp from 1e-6 → 1e-4
+max_epochs: 600  # Total training epochs
+cosine_t_max: 290  # Decay over remaining 290 epochs (600 - 300 - 10 warmup)
+eta_min: 1.0e-6  # Don't go to 0, keep learning
+
+# Mixed precision training
+precision: 16-mixed  # Faster training with minimal accuracy loss
+
+# Augmentation (ResNet Strikes Back A2 recipe)
+random_crop: true
+random_horizontal_flip: true
+auto_augment: randaugment  # RandAugment (M≈7-9)
+random_erasing: 0.35  # INCREASED from 0.25 → 0.35 (RSB tested up to 0.35)
+mixup_alpha: 0.3  # INCREASED from 0.2 → 0.3 (RSB tested up to 0.4)
+cutmix_alpha: 1.0  # CutMix (ResNet Strikes Back A2)
+label_smoothing: 0.1  # Label smoothing (not used with BCE+mixup/cutmix)
+
+# Regularization
+use_ema: false  # Not used in base ResNet Strikes Back
+gradient_clip_val: 1.0  # NEW: Clip gradients for stability
+gradient_clip_algorithm: norm  # Clip by norm
+accumulate_grad_batches: 2  # NEW: Accumulate over 2 batches (effective batch 4096)
+
+# Logging
+log_every_n_steps: 100
+val_check_interval: 1.0  # Validate every epoch
+
+# Checkpointing - NEW PATH
+checkpoint_dir: /mnt/checkpoints  # NEW: Store checkpoints on mounted volume
+save_top_k: 5
+monitor: val/acc1
+mode: max
+
+# Distributed training (for multi-GPU/multi-node)
+devices: 8  # 8x A100 40GB GPUs
+num_nodes: 1
+strategy: ddp
+sync_batchnorm: true
+
+# Reproducibility
+seed: 42
+deterministic: false  # Set to true for reproducibility (slower)
+
+# Notes - CONTINUATION TRAINING:
+# - Resume from best checkpoint at epoch ~300 (76.1% accuracy)
+# - Target: 78-79% @ epoch 600
+# - Key changes from first 300 epochs:
+#   1. Lower peak LR (1e-4 vs 5e-3) - 50x lower, safe restart
+#   2. Stronger augmentation (RE 0.35, Mixup 0.3) - within RSB tested ranges
+#   3. Gradient accumulation (×2) - effective batch 4096 for smoother gradients
+#   4. Gradient clipping (1.0) - stability during restart
+#   5. Non-zero eta_min (1e-6) - never stops learning completely
+#   6. Checkpoint dir: /mnt/checkpoints - new storage location
+#
+# Resume command:
+#   python train.py \
+#     --config configs/resnet_continuation_300to600.yaml \
+#     --resume /path/to/epoch=299-checkpoint.ckpt \
+#     --wandb_project imagenet-resnet50 \
+#     --wandb_name RSB_A2_continuation_300to600
+#
+# Monitor first 20 epochs:
+#   - Epochs 300-310 (warmup): Loss should stay stable
+#   - If loss spikes >10%: Stop and reduce peak LR to 5e-5
+#   - Expected timeline: 76.1% → 76.5% → 77.5% → 78.5%
+#
+# No LR finder needed - this is a conservative restart with 10-epoch warmup

@@ -120,6 +120,18 @@ class ResNet50Module(pl.LightningModule):
     def forward(self, x):
         return self.model(x)
     
+    def on_load_checkpoint(self, checkpoint):
+        """Handle loading checkpoints that may contain EMA model weights."""
+        # Remove EMA model weights from state dict if present
+        state_dict = checkpoint.get('state_dict', {})
+        ema_keys = [k for k in state_dict.keys() if k.startswith('ema_model.')]
+        
+        if ema_keys:
+            print(f"Removing {len(ema_keys)} EMA model keys from checkpoint")
+            for key in ema_keys:
+                del state_dict[key]
+            checkpoint['state_dict'] = state_dict
+    
     def training_step(self, batch, batch_idx):
         images, targets = batch
         

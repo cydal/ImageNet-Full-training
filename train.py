@@ -105,7 +105,7 @@ def main():
     
     # Checkpoint callback
     checkpoint_callback = ModelCheckpoint(
-        dirpath="checkpoints",
+        dirpath=config.get("checkpoint_dir", "checkpoints"),
         filename="resnet50-{epoch:02d}-{val/acc1:.4f}",
         monitor=config.get("monitor", "val/acc1"),
         mode=config.get("mode", "max"),
