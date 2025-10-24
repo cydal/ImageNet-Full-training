@@ -1,0 +1,90 @@
+# ResNet-50 Continuation with SGD + Moderate Augmentation
+# Strategy: Back to basics - what ResNet was designed for
+# Goal: Break through 76.2% plateau → target 77-78%
+
+# Data settings
+data_root: /mnt/imagenet-data/imagenet
+batch_size: 256  # Per GPU (8 GPUs = 2048 effective batch)
+num_workers: 24
+pin_memory: true
+persistent_workers: true
+prefetch_factor: 6
+
+# Model settings
+model_name: resnet50
+pretrained: false
+num_classes: 1000
+compile_model: true
+
+# Image preprocessing
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Training hyperparameters - SGD STRATEGY
+epochs: 100  # Fast iteration - don't need 300 more epochs
+optimizer: sgd  # Back to what ResNet was designed for
+lr: 0.05  # Conservative restart (0.1 is standard, but we're continuing)
+momentum: 0.9
+weight_decay: 0.0001  # Standard ResNet weight decay
+nesterov: true  # Nesterov momentum for better convergence
+
+# LR Schedule - Fast cosine decay
+lr_scheduler: cosine
+warmup_epochs: 5  # Quick warmup
+max_epochs: 100
+cosine_t_max: 95  # Decay over 95 epochs (100 - 5 warmup)
+eta_min: 1.0e-6  # Don't go to zero
+
+# Mixed precision
+precision: 16-mixed
+
+# Augmentation - MODERATE (not aggressive, not minimal)
+random_crop: true
+random_horizontal_flip: true
+auto_augment: randaugment
+random_erasing: 0.2  # Reduced from 0.25 (original) and 0.35 (failed attempt)
+mixup_alpha: 0.15  # Reduced from 0.2 (original) and 0.3 (failed attempt)
+cutmix_alpha: 1.0  # Keep this - it works well
+label_smoothing: 0.1
+
+# Regularization
+use_ema: false
+gradient_clip_val: null  # SGD doesn't need gradient clipping
+gradient_clip_algorithm: norm
+accumulate_grad_batches: 1  # No accumulation - SGD works better without it
+
+# Logging
+log_every_n_steps: 100
+val_check_interval: 1.0
+
+# Checkpointing
+checkpoint_dir: /mnt/checkpoints
+save_top_k: 5
+monitor: val/acc1
+mode: max
+
+# Distributed training
+devices: 8
+num_nodes: 1
+strategy: ddp
+sync_batchnorm: true
+
+# Reproducibility
+seed: 42
+deterministic: false
+
+# Strategy Notes:
+# - SGD is what ResNet-50 was designed for (all original papers use it)
+# - Nesterov momentum helps escape local minima
+# - Moderate augmentation: strong enough to regularize, not so strong it hurts learning
+# - No gradient accumulation: SGD benefits from more frequent updates
+# - Fast 100-epoch cycle: if this works, we'll see improvement quickly
+# - Conservative LR (0.05): safe restart, can increase if needed
+#
+# Expected Results:
+# - Epochs 0-5: Warmup, should stay stable at 76.2%
+# - Epochs 5-30: Should see improvement to 76.5-76.8%
+# - Epochs 30-70: Continued gains to 77.0-77.5%
+# - Epochs 70-100: Final refinement to 77.5-78.0%
+#
+# If no improvement by epoch 30, stop and try AdamW instead.

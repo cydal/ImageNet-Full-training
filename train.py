@@ -9,6 +9,7 @@ import argparse
 import os
 from pathlib import Path
 import yaml
+import torch
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
@@ -158,7 +159,14 @@ def main():
     )
     
     # Train
-    trainer.fit(model, datamodule=datamodule, ckpt_path=args.resume)
+    # For continuation training with modified checkpoints, load weights before training
+    if args.resume:
+        checkpoint = torch.load(args.resume, map_location='cpu')
+        model.load_state_dict(checkpoint['state_dict'], strict=False)
+        print(f"✓ Loaded model weights from {args.resume}")
+        print(f"  Starting fresh with new hyperparameters from config\n")
+    
+    trainer.fit(model, datamodule=datamodule)
     
     # Test on validation set
     trainer.validate(model, datamodule=datamodule)

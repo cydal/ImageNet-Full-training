@@ -1,0 +1,85 @@
+# ResNet-50 Continuation - LAMB + Constant LR (Final Attempt)
+# Strategy: Proven LAMB + RSB augmentation + Fixed constant LR
+# No warmup, no decay - just steady learning
+
+# Data settings
+data_root: /mnt/imagenet-data/imagenet
+batch_size: 256  # Per GPU (8 GPUs = 2048 effective batch)
+num_workers: 24
+pin_memory: true
+persistent_workers: true
+prefetch_factor: 6
+
+# Model settings
+model_name: resnet50
+pretrained: false
+num_classes: 1000
+compile_model: true
+
+# Image preprocessing
+mean: [0.485, 0.456, 0.406]
+std: [0.229, 0.224, 0.225]
+
+# Training hyperparameters - CONSTANT LR STRATEGY
+epochs: 100  # Final 100 epoch attempt
+optimizer: lamb  # Back to what was working
+lr: 1.0e-4  # CONSTANT - no warmup, no decay
+momentum: 0.9  # Not used with LAMB
+weight_decay: 0.02  # RSB A2 standard
+
+# LR Schedule - CONSTANT (no warmup, no decay)
+lr_scheduler: constant  # Fixed LR throughout
+warmup_epochs: 0  # No warmup
+max_epochs: 100
+cosine_t_max: null  # Not used
+eta_min: null  # Not used
+
+# Mixed precision
+precision: 16-mixed
+
+# Augmentation - RSB A2 STANDARD (what got us to 76.2%)
+random_crop: true
+random_horizontal_flip: true
+auto_augment: randaugment
+random_erasing: 0.25  # RSB A2 standard
+mixup_alpha: 0.2  # RSB A2 standard
+cutmix_alpha: 1.0  # RSB A2 standard
+label_smoothing: 0.1
+
+# Regularization
+use_ema: false
+gradient_clip_val: null
+gradient_clip_algorithm: norm
+accumulate_grad_batches: 1  # No accumulation
+
+# Logging
+log_every_n_steps: 100
+val_check_interval: 1.0
+
+# Checkpointing
+checkpoint_dir: /mnt/checkpoints
+save_top_k: 5
+monitor: val/acc1
+mode: max
+
+# Distributed training
+devices: 8
+num_nodes: 1
+strategy: ddp
+sync_batchnorm: true
+
+# Reproducibility
+seed: 42
+deterministic: false
+
+# Final Attempt Strategy:
+# - LAMB optimizer: What got us to 76.2%
+# - RSB A2 augmentation: Proven recipe
+# - CONSTANT LR 1e-4: No scheduler complexity, just steady learning
+# - 100 epochs: If this doesn't work, we accept 76.2% as the limit
+#
+# Hypothesis: The LR schedule was the problem, not the optimizer or augmentation.
+# With constant LR, the model can continue learning without being disrupted by
+# warmup/decay cycles.
+#
+# Decision: If no improvement by epoch 30, stop and accept 76.2% as final result.
