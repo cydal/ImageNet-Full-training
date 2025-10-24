@@ -121,7 +121,7 @@ class ResNet50Module(pl.LightningModule):
         return self.model(x)
     
     def on_load_checkpoint(self, checkpoint):
-        """Handle loading checkpoints that may contain EMA model weights."""
+        """Handle loading checkpoints that may contain EMA model weights and reset LR scheduler."""
         # Remove EMA model weights from state dict if present
         state_dict = checkpoint.get('state_dict', {})
         ema_keys = [k for k in state_dict.keys() if k.startswith('ema_model.')]
@@ -131,6 +131,17 @@ class ResNet50Module(pl.LightningModule):
             for key in ema_keys:
                 del state_dict[key]
             checkpoint['state_dict'] = state_dict
+        
+        # CRITICAL: Reset LR scheduler state for continuation training
+        # This forces the scheduler to restart from the beginning with warmup
+        if 'lr_schedulers' in checkpoint:
+            print("Resetting LR scheduler state for continuation training")
+            del checkpoint['lr_schedulers']
+        
+        # Also reset optimizer state to start fresh with new LR
+        if 'optimizer_states' in checkpoint:
+            print("Resetting optimizer state for continuation training")
+            del checkpoint['optimizer_states']
     
     def training_step(self, batch, batch_idx):
         images, targets = batch
