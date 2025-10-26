@@ -102,7 +102,7 @@ ImageNet-Full-training/
 
 ## 🔬 The Training Journey
 
-### Phase 1: Initial Setup & Data Validation (Days 1-2)
+### Phase 1: Initial Setup & Data Validation
 
 **Challenge:** Validation accuracy stuck at ~30% despite good training loss
 
@@ -121,7 +121,7 @@ mv val/ val_old/
 
 **Key Learning:** Always verify data labels before debugging hyperparameters!
 
-### Phase 2: LR Finding & Baseline Training (Days 3-5)
+### Phase 2: LR Finding & Baseline Training
 
 **Approach:** Systematic LR finding on single GPU
 
@@ -144,11 +144,11 @@ lr_scheduler: cosine
 **Results:**
 - Epoch 5: ~30-40% val_acc1
 - Epoch 90: ~76% val_acc1
-- Training time: ~3 days on 8x A100
+- Training time: ~1 days on 8x A100
 
 **Key Learning:** LR finder on single GPU + linear scaling works well for multi-GPU training
 
-### Phase 3: ResNet Strikes Back A2 Recipe (Days 6-20)
+### Phase 3: ResNet Strikes Back A2 Recipe
 
 **Goal:** Push beyond 76% using state-of-the-art training recipe
 
@@ -185,7 +185,7 @@ batch_size: 256  # Per GPU (2048 effective)
 
 **Key Learning:** LAMB optimizer + aggressive augmentation + long training (300 epochs) achieves strong results
 
-### Phase 4: Continuation Training Attempts (Days 21-25)
+### Phase 4: Continuation Training Attempts
 
 **Goal:** Push from 76.2% to 78-80%
 
@@ -356,7 +356,7 @@ cutmix_alpha: 1.0
 label_smoothing: 0.1
 ```
 
-**Training time:** ~2-3 days on 8x A100
+**Training time:** ~1 days on 8x A100
 
 ### Recipe 2: ResNet Strikes Back A2 (LAMB)
 
@@ -419,7 +419,7 @@ results = model.predict_batch(image_paths, batch_size=32)
 
 ### Hugging Face Spaces Demo
 
-**[Live Demo]** ← *Link to be added*
+[*Live Demo*](https://huggingface.co/spaces/Sijuade/imagenet-resnet50-inference)
 
 An interactive Streamlit app for trying the model on your own images:
 - Upload any image
@@ -497,6 +497,25 @@ aws s3 sync /mnt/checkpoints/ s3://sij-imagenet-train/imagenet/checkpoints/lambs
 **Batch Size:**
 - 2048 effective (256 per GPU × 8): Optimal
 - 4096 (with grad accumulation): Slower, no benefit
+
+### Logs
+```
+Epoch 287:  99%|█████████▉| 620/625 [04:20<00:02,  2.38it/s, v_num=3_22, train/loss_step=3.860, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287:  99%|█████████▉| 620/625 [04:20<00:02,  2.38it/s, v_num=3_22, train/loss_step=2.790, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287:  99%|█████████▉| 621/625 [04:20<00:01,  2.38it/s, v_num=3_22, train/loss_step=2.790, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287:  99%|█████████▉| 621/625 [04:20<00:01,  2.38it/s, v_num=3_22, train/loss_step=1.450, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287: 100%|█████████▉| 622/625 [04:21<00:01,  2.38it/s, v_num=3_22, train/loss_step=1.450, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287: 100%|█████████▉| 622/625 [04:21<00:01,  2.38it/s, v_num=3_22, train/loss_step=2.980, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287: 100%|█████████▉| 623/625 [04:21<00:00,  2.38it/s, v_num=3_22, train/loss_step=2.980, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287: 100%|█████████▉| 623/625 [04:21<00:00,  2.38it/s, v_num=3_22, train/loss_step=0.689, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287: 100%|█████████▉| 624/625 [04:21<00:00,  2.38it/s, v_num=3_22, train/loss_step=0.689, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287: 100%|█████████▉| 624/625 [04:21<00:00,  2.38it/s, v_num=3_22, train/loss_step=1.700, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287: 100%|██████████| 625/625 [04:22<00:00,  2.38it/s, v_num=3_22, train/loss_step=1.700, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+Epoch 287: 100%|██████████| 625/625 [04:22<00:00,  2.38it/s, v_num=3_22, train/loss_step=0.790, val/loss=0.988, val/acc1=76.20, train/loss_epoch=2.040]
+```
+
+<img width="1512" height="982" alt="Image" src="https://github.com/user-attachments/assets/34a68873-0431-4f76-8f4f-e76d465f5ce3" />
+<img width="2727" height="964" alt="Image" src="https://github.com/user-attachments/assets/437c2396-0730-445e-856a-de73f7a2dab9" />
 
 ## 🚀 Future Directions
 
