@@ -384,6 +384,9 @@ label_smoothing: 0.1
 auto_augment: randaugment
 ```
 
+### wandb Training Logs
+https://wandb.ai/sijpapi/imagenet-resnet50/runs/n85l5kc3/logs?nw=nwusersijpapi
+
 **Training time:** ~10-12 hours on 8x A100
 
 ## 🔧 Utilities
